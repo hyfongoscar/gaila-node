@@ -1,8 +1,9 @@
-import { Router } from "express";
-import { getAllCourses } from "../controllers/coursesController";
+import { Router } from 'express';
+
+import { getAllCourses } from '../controllers/coursesController';
 
 const router = Router();
 
-router.get("/", getAllCourses);
+router.get('/', getAllCourses);
 
 export default router;
