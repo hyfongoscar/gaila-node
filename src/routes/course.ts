@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { getAllCourses } from '../controllers/coursesController';
+import { getAllCourses } from '../controllers/courseController';
 
 const router = Router();
 

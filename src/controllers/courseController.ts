@@ -7,6 +7,6 @@ export const getAllCourses = async (req: Request, res: Response) => {
     const courses = await fetchAllCourses();
     res.json(courses);
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error: ' + JSON.stringify(err) });
   }
 };

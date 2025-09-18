@@ -4,7 +4,6 @@ import eslint from '@eslint/js';
 import { globalIgnores } from 'eslint/config';
 import _import from 'eslint-plugin-import';
 import prettier from 'eslint-plugin-prettier';
-import react from 'eslint-plugin-react';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import fs from 'fs';
 import path, { dirname } from 'path';
@@ -26,31 +25,20 @@ const prettierOptions = JSON.parse(
 
 export default tseslint.config([
   {
-    extends: fixupConfigRules(
-      compat.extends(
-        'eslint:recommended',
-        'plugin:react/recommended',
-        'plugin:react-hooks/recommended',
-        'prettier',
-      ),
-    ),
+    extends: fixupConfigRules(compat.extends('eslint:recommended', 'prettier')),
     plugins: {
-      react: fixupPluginRules(react),
       import: fixupPluginRules(_import),
       prettier,
       'simple-import-sort': simpleImportSort,
     },
     rules: {
       'import/order': ['off'],
-      'react/display-name': 'off',
-      'react/jsx-sort-props': 'warn',
       'prettier/prettier': ['error', prettierOptions],
 
       'simple-import-sort/imports': [
         'warn',
         {
           groups: [
-            ['^react$'],
             ['^\\u0000'],
             ['^@?\\w'],
             ['^components(/.*|$)'],
@@ -65,9 +53,6 @@ export default tseslint.config([
       'import/first': 'warn',
       'import/newline-after-import': 'warn',
       'import/no-duplicates': 'error',
-
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   {
@@ -78,7 +63,7 @@ export default tseslint.config([
         'warn',
         {
           argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_|React',
+          varsIgnorePattern: '^_',
         },
       ],
       '@typescript-eslint/no-explicit-any': 'off',
@@ -90,5 +75,5 @@ export default tseslint.config([
       'prettier/prettier': ['warn', prettierOptions],
     },
   },
-  globalIgnores(['**/*.lib.js', '**/*.min.js']),
+  globalIgnores(['**/*.lib.js', '**/*.min.js', 'migration/*']),
 ]);
