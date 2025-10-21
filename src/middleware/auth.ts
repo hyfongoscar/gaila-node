@@ -1,14 +1,9 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { fetchUserById } from 'models/userModel';
 
-interface UserPayload extends jwt.JwtPayload {
-  id: number;
-  username: string;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: UserPayload;
-}
+import { AuthenticatedRequest, UserPayload } from 'types/request';
+import { User } from 'types/user';
 
 export function authenticateToken(
   req: AuthenticatedRequest,
@@ -38,4 +33,31 @@ export function authenticateToken(
     req.user = user;
     next();
   });
+}
+
+export function authorizeRole(role?: User['role']) {
+  return async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const user = await fetchUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const userRole = user.role;
+    if (!!role && userRole !== role) {
+      return res
+        .status(403)
+        .json({ message: 'Access forbidden: insufficient rights' });
+    }
+
+    req.user = user;
+    next();
+  };
 }

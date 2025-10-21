@@ -1,24 +1,21 @@
-export interface User {
+export interface Class {
   id: number;
-  username: string;
-  password: string;
-  email: string;
-  role: 'admin' | 'user';
-  lastAccess?: number;
-  lastLogin?: number;
-  timeCreated?: number;
-  timeModified?: number;
-  firstName?: string;
-  lastName?: string;
-  deleted?: boolean;
-  lang?: string;
+  name: string;
+  description?: string;
+  startAt?: number;
+  endAt?: number;
 }
 
-export interface RefreshToken {
-  userId: number;
-  tokenHash: string;
-  expiresAt: number;
-  updatedAt: number;
+export interface ClassTeacher {
+  id: number;
+  classId: number;
+  teacherId: number;
+}
+
+export interface ClassStudent {
+  id: number;
+  classId: number;
+  studentId: number;
 }
 
 // export interface Course {

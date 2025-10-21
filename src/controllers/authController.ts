@@ -2,12 +2,11 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-
 import {
   fetchRefreshTokenByTokenHash,
-  fetchUserByUsername,
   storeRefreshToken,
-} from '../models/userModel';
+} from 'models/authModel';
+import { fetchUserByUsername } from 'models/userModel';
 
 const generateAccessToken = (userId: number, username: string) => {
   const tokenSecret = process.env.TOKEN_SECRET;
