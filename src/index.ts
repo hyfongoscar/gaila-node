@@ -2,11 +2,11 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { Application } from 'express';
 import { authenticateToken } from 'middleware/auth';
+import assignmentRoutes from 'routes/assignment';
 import authRoutes from 'routes/auth';
 import classRoutes from 'routes/class';
 import homeRoutes from 'routes/home';
-
-import userRoutes from './routes/user';
+import userRoutes from 'routes/user';
 
 dotenv.config();
 
@@ -22,6 +22,7 @@ app.use(
 app.use('/api/', homeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/class', authenticateToken, classRoutes);
+app.use('/api/assignment', authenticateToken, assignmentRoutes);
 app.use('/api/user', authenticateToken, userRoutes);
 
 const PORT = process.env.PORT || 5000;

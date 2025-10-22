@@ -1,10 +1,22 @@
+import { Class } from 'types/class';
+import { User } from 'types/user';
+
 export interface Assignment {
-  id: number;
+  id: string;
   title: string;
-  createdBy: number;
   description?: string;
-  dueDate?: number;
-  rubric?: any;
+  dueDate?: string;
+  type?: string;
+  instructions?: string;
+  minWordCount?: number;
+  maxWordCount?: number;
+  rubrics?: string;
+  createdBy: number;
+}
+
+export interface AssignmentView extends Assignment {
+  enrolledClasses: Class[];
+  enrolledStudents: User[];
 }
 
 export interface AssignmentTeacher {

@@ -13,3 +13,13 @@ export interface User {
   deleted?: boolean;
   lang?: string;
 }
+
+export interface ClassUser extends User {
+  classId: number;
+  className: string;
+}
+
+export type ClassUserOption = Pick<
+  ClassUser,
+  'id' | 'firstName' | 'lastName' | 'username' | 'className'
+>;

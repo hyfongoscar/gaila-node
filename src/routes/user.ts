@@ -1,9 +1,22 @@
 import { Router } from 'express';
+import { authorizeRole } from 'middleware/auth';
 
-import { getAllUsers } from '../controllers/userController';
+import {
+  getClassOptions,
+  getStudentOptions,
+} from '../controllers/userController';
 
 const router = Router();
 
-router.get('/', getAllUsers);
+router.get(
+  '/class-options',
+  authorizeRole(['teacher', 'admin']),
+  getClassOptions,
+);
+router.get(
+  '/student-options',
+  authorizeRole(['teacher', 'admin']),
+  getStudentOptions,
+);
 
 export default router;

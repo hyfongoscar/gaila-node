@@ -1,8 +1,7 @@
-import { Class } from 'types/class';
+import pool from 'config/db';
+import { Class, ClassOption } from 'types/class';
 
-import pool from '../config/db';
-
-export const fetchClassesByTeacherId = async (
+export const fetchClassListingByTeacherId = async (
   id: number,
   limit: number,
   page: number,
@@ -13,6 +12,7 @@ export const fetchClassesByTeacherId = async (
   );
   return classRows as Class[];
 };
+
 export const fetchClassesCountByTeacherId = async (
   id: number,
 ): Promise<number> => {
@@ -24,7 +24,23 @@ export const fetchClassesCountByTeacherId = async (
   return result.length > 0 ? result[0]['COUNT(*)'] : 0;
 };
 
-export const fetchClassesByStudentId = async (
+export const fetchClassOptionsByTeacherId = async (
+  id: number,
+): Promise<ClassOption[]> => {
+  const [classRows] = await pool.query(
+    `SELECT classes.id as id, classes.name as name, COUNT(*) as numStudents
+      FROM classes
+      JOIN class_students ON classes.id = class_students.class_id
+      WHERE class_id IN (
+        SELECT class_id FROM class_teachers WHERE teacher_id = ?
+      )
+      GROUP BY classes.id`,
+    [id],
+  );
+  return classRows as ClassOption[];
+};
+
+export const fetchClassListingByStudentId = async (
   id: number,
   limit: number,
   page: number,
@@ -51,4 +67,11 @@ export const fetchClassById = async (id: number): Promise<Class | null> => {
   const [rows] = await pool.query('SELECT * FROM classes WHERE id = ?', [id]);
   const result = rows as Class[];
   return result.length > 0 ? result[0] : null;
+};
+
+export const fetchClassesByIds = async (ids: number[]): Promise<Class[]> => {
+  const [rows] = await pool.query(`SELECT * FROM classes WHERE id IN (?)`, [
+    ids,
+  ]);
+  return rows as Class[];
 };

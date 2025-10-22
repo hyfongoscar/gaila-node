@@ -1,38 +1,42 @@
 import { Response } from 'express';
 import {
   fetchClassById,
-  fetchClassesByStudentId,
-  fetchClassesByTeacherId,
   fetchClassesCountByStudentId,
   fetchClassesCountByTeacherId,
+  fetchClassListingByStudentId,
+  fetchClassListingByTeacherId,
 } from 'models/classModel';
 
 import { Class } from 'types/class';
 import { AuthenticatedRequest } from 'types/request';
+import parseQueryNumber from 'utils/parseQueryNumber';
 
 export const getUserClasses = async (
   req: AuthenticatedRequest,
   res: Response,
 ) => {
-  const limit = req.params.limit ? parseInt(req.params.limit, 10) : 10;
-  const page = req.params.page ? parseInt(req.params.page, 10) : 1;
+  const parsedLimit = parseQueryNumber(req.query.limit);
+  const parsedPage = parseQueryNumber(req.query.page);
+
+  const limit = parsedLimit !== undefined ? parsedLimit : 10;
+  const page = parsedPage !== undefined ? parsedPage : 1;
 
   if (isNaN(limit) || isNaN(page) || limit <= 0 || page <= 0) {
     return res.status(400).json({ message: 'Invalid pagination parameters' });
   }
 
-  const resObj = { page, limit, data: [] as Class[] };
+  const resObj = { page, limit, value: [] as Class[] };
 
   if (req.user?.role === 'student') {
-    resObj.data = await fetchClassesByStudentId(req.user.id, limit, page);
+    resObj.value = await fetchClassListingByStudentId(req.user.id, limit, page);
   } else if (req.user?.role === 'teacher' || req.user?.role === 'admin') {
-    resObj.data = await fetchClassesByTeacherId(req.user.id, limit, page);
+    resObj.value = await fetchClassListingByTeacherId(req.user.id, limit, page);
   } else {
     return res
       .status(403)
       .json({ message: 'Access forbidden: insufficient rights' });
   }
-  if (req.params.skipCount) {
+  if (parseQueryNumber(req.query.skipCount)) {
     return res.json(resObj);
   }
 

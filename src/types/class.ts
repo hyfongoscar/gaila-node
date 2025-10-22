@@ -6,10 +6,16 @@ export interface Class {
   endAt?: number;
 }
 
+export interface ClassOption {
+  id: number;
+  name: string;
+  numStudents: number;
+}
+
 export interface ClassTeacher {
   id: number;
-  classId: number;
-  teacherId: number;
+  class_id: number;
+  teacher_id: number;
 }
 
 export interface ClassStudent {
