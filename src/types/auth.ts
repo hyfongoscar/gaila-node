@@ -1,6 +1,6 @@
 export interface RefreshToken {
-  userId: number;
-  tokenHash: string;
-  expiresAt: number;
-  updatedAt: number;
+  user_id: number;
+  token_hash: string;
+  expires_at: number;
+  updated_at: number;
 }

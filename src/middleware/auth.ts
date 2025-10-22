@@ -35,7 +35,7 @@ export function authenticateToken(
   });
 }
 
-export function authorizeRole(role?: User['role']) {
+export function authorizeRole(roles?: User['role'][]) {
   return async (
     req: AuthenticatedRequest,
     res: Response,
@@ -51,7 +51,7 @@ export function authorizeRole(role?: User['role']) {
     }
 
     const userRole = user.role;
-    if (!!role && userRole !== role) {
+    if (!!roles && roles.indexOf(userRole) === -1) {
       return res
         .status(403)
         .json({ message: 'Access forbidden: insufficient rights' });

@@ -10,7 +10,7 @@ export const fetchRefreshTokenByUserId = async (
     [userId],
   );
   const result = rows as RefreshToken[];
-  return result.length > 0 ? result[0].tokenHash : null;
+  return result.length > 0 ? result[0].token_hash : null;
 };
 
 export const fetchRefreshTokenByTokenHash = async (

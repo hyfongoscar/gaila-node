@@ -6,7 +6,7 @@ import {
   fetchRefreshTokenByTokenHash,
   storeRefreshToken,
 } from 'models/authModel';
-import { fetchUserByUsername } from 'models/userModel';
+import { fetchUserById, fetchUserByUsername } from 'models/userModel';
 
 const generateAccessToken = (userId: number, username: string) => {
   const tokenSecret = process.env.TOKEN_SECRET;
@@ -59,7 +59,7 @@ export const loginUser = async (req: Request, res: Response) => {
   storeRefreshToken(
     user.id,
     crypto.createHash('sha256').update(refreshToken).digest('hex'),
-    Date.now() + refreshTokenExpiresIn * 1000,
+    Date.now() + refreshTokenExpiresIn,
   );
 
   return res.status(200).json({
@@ -90,12 +90,12 @@ export const refreshToken = async (req: Request, res: Response) => {
     return res.status(401).json({ error: 'Invalid refresh token' });
   }
 
-  if (dbRefreshToken.expiresAt < Date.now()) {
+  if (dbRefreshToken.expires_at < Date.now()) {
     return res.status(401).json({ error: 'Refresh token has expired' });
   }
 
   // Fetch user to generate new access token
-  const user = await fetchUserByUsername(req.body.username);
+  const user = await fetchUserById(dbRefreshToken.user_id);
   if (!user) {
     return res.status(401).json({ error: 'Invalid refresh token' });
   }
