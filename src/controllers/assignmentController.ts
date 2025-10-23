@@ -1,18 +1,21 @@
 import { Response } from 'express';
 import {
+  fetchAssignementEnrollmentsById,
   fetchAssignmentById,
   fetchAssignmentsByStudentId,
   fetchAssignmentsByTeacherId,
   fetchAssignmentsCountByStudentId,
   fetchAssignmentsCountByTeacherId,
   saveNewAssignment,
+  updateExistingAssignment,
 } from 'models/assignmentModel';
 import { fetchClassesByIds } from 'models/classModel';
 import { fetchUsersByIds } from 'models/userModel';
 
 import { AssignmentView } from 'types/assignment';
-import { Class } from 'types/class';
+import { Class, ClassOption } from 'types/class';
 import { AuthorizedRequest } from 'types/request';
+import { User, UserOption } from 'types/user';
 
 const parseQueryNumber = (v: any): number | undefined => {
   if (typeof v === 'string') return parseInt(v, 10);
@@ -32,7 +35,9 @@ export const getUserAssignments = async (
   const page = parsedPage !== undefined ? parsedPage : 1;
 
   if (isNaN(limit) || isNaN(page) || limit <= 0 || page <= 0) {
-    return res.status(400).json({ message: 'Invalid pagination parameters' });
+    return res
+      .status(400)
+      .json({ message: 'Invalid pagination parameters', error_code: 400 });
   }
 
   const resObj = { page, limit, value: [] as Class[] };
@@ -42,9 +47,10 @@ export const getUserAssignments = async (
   } else if (req.user?.role === 'teacher' || req.user?.role === 'admin') {
     resObj.value = await fetchAssignmentsByTeacherId(req.user.id, limit, page);
   } else {
-    return res
-      .status(403)
-      .json({ message: 'Access forbidden: insufficient rights' });
+    return res.status(403).json({
+      message: 'Access forbidden: insufficient rights',
+      error_code: 403,
+    });
   }
   if (parseQueryNumber(req.query.skipCount)) {
     return res.json(resObj);
@@ -63,72 +69,91 @@ export const getAssignmentDetails = async (
   req: AuthorizedRequest,
   res: Response,
 ) => {
-  const classId = Number(req.params.id);
-  if (isNaN(classId)) {
-    return res.status(400).json({ message: 'Invalid class ID' });
+  const assignmentId = Number(req.params.id);
+  if (isNaN(assignmentId)) {
+    return res
+      .status(400)
+      .json({ message: 'Missing assignment ID', error_code: 400 });
   }
 
   try {
-    const classDetails = await fetchAssignmentById(classId);
-    if (!classDetails) {
-      return res.status(404).json({ message: 'Class not found' });
+    const assignmentDetails = await fetchAssignmentById(assignmentId);
+    if (!assignmentDetails) {
+      return res.status(404).json({ message: 'Assignment not found' });
     }
-    return res.json(classDetails);
+    const enrollments = await fetchAssignementEnrollmentsById(assignmentId);
+    if (!enrollments) {
+      return res
+        .status(500)
+        .json({ message: 'Assignment enrollments not found', error_code: 500 });
+    }
+    const classes: ClassOption[] = [];
+    const students: UserOption[] = [];
+    enrollments.forEach(s => {
+      if ('class_id' in s && s.class_id !== null) {
+        classes.push({
+          id: s.class_id,
+          name: s.class_name,
+          num_students: s.num_students,
+        });
+      } else if ('student_id' in s) {
+        students.push({
+          id: s.student_id,
+          username: s.username,
+          first_name: s.first_name,
+          last_name: s.last_name,
+        });
+      }
+    });
+    return res.json({
+      ...assignmentDetails,
+      enrolled_classes: classes,
+      enrolled_students: students,
+    });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ message: 'Server error: ' + JSON.stringify(err) });
+    return res.status(500).json({
+      message: 'Server error: ' + JSON.stringify(err),
+      error_code: 500,
+    });
   }
 };
 
-export const createAssignment = async (
-  req: AuthorizedRequest,
-  res: Response,
-) => {
-  if (!req.body.assignment) {
-    return res.status(400).json({ message: 'Assignment details required' });
-  }
-
-  if (!req.user?.id) {
-    return res.status(401).json({ message: 'User not authenticated' });
-  }
-
+const assignmentValidation = async (
+  assignment: any,
+): Promise<[Class[], User[]]> => {
   const {
     title,
     description,
-    type,
-    instructions,
-    minWordCount,
-    maxWordCount,
-    dueDate,
-    rubrics,
-    enrolledClassIds,
-    enrolledStudentIds,
-  } = req.body.assignment;
+    due_date: dueDate,
+    enrolled_class_ids: enrolledClassIds,
+    enrolled_student_ids: enrolledStudentIds,
+  } = assignment;
 
   if (
     !Array.isArray(enrolledClassIds) ||
     !enrolledClassIds.every(Number.isInteger) ||
     !Array.isArray(enrolledStudentIds) ||
-    !enrolledStudentIds.every(Number.isInteger)
-  ) {
-    return res.status(400).json({ message: 'Invalid class or student IDs' });
-  }
-
-  if (
-    !title ||
-    !description ||
-    !dueDate ||
+    !enrolledStudentIds.every(Number.isInteger) ||
     (!enrolledClassIds.length && !enrolledStudentIds.length)
   ) {
-    return res.status(400).json({ message: 'Missing required fields' });
+    throw new Error('Invalid class or student IDs');
+  }
+
+  const missingFields = [];
+  if (!title) missingFields.push('Title');
+  if (!description) missingFields.push('Description');
+  if (!dueDate) missingFields.push('Due Date');
+  if (missingFields.length) {
+    throw new Error(
+      `Missing required field${missingFields.length > 1 ? 's' : ''}: ${missingFields.join(', ')}`,
+    );
   }
 
   const classes = enrolledClassIds.length
     ? await fetchClassesByIds(enrolledClassIds)
     : [];
   if (classes.length !== enrolledClassIds.length) {
-    return res.status(400).json({ message: 'Invalid class IDs' });
+    throw new Error('Invalid class IDs');
   }
   const students = enrolledStudentIds.length
     ? await fetchUsersByIds(enrolledStudentIds)
@@ -137,32 +162,145 @@ export const createAssignment = async (
     students.length !== enrolledStudentIds.length ||
     students.some(s => s.role !== 'student')
   ) {
-    return res.status(400).json({ message: 'Invalid student IDs' });
+    throw new Error('Invalid student IDs');
   }
 
-  const result = await saveNewAssignment(
+  return [classes, students];
+};
+
+export const createAssignment = async (
+  req: AuthorizedRequest,
+  res: Response,
+) => {
+  if (!req.body.assignment) {
+    return res
+      .status(400)
+      .json({ message: 'Assignment details required', error_code: 400 });
+  }
+
+  if (!req.user?.id) {
+    return res
+      .status(401)
+      .json({ message: 'User not authenticated', error_code: 401 });
+  }
+
+  const {
     title,
     description,
-    dueDate,
     type,
     instructions,
-    minWordCount,
-    maxWordCount,
-    JSON.stringify(rubrics),
-    req.user.id,
-    enrolledClassIds,
-    enrolledStudentIds,
-  );
+    min_word_count: minWordCount,
+    max_word_count: maxWordCount,
+    due_date: dueDate,
+    rubrics,
+    enrolled_class_ids: enrolledClassIds,
+    enrolled_student_ids: enrolledStudentIds,
+  } = req.body.assignment;
 
-  if (!result) {
-    return res.status(500).json({ message: 'Server error' });
+  try {
+    const [classes, students] = await assignmentValidation(req.body.assignment);
+
+    const result = await saveNewAssignment(
+      title,
+      description,
+      dueDate,
+      type,
+      instructions,
+      minWordCount,
+      maxWordCount,
+      JSON.stringify(rubrics),
+      req.user.id,
+      enrolledClassIds,
+      enrolledStudentIds,
+    );
+
+    if (!result) {
+      return res.status(500).json({ message: 'Server error', error_code: 500 });
+    }
+
+    const resObj: AssignmentView = {
+      ...result,
+      enrolled_classes: classes,
+      enrolled_students: students,
+    };
+
+    return res.status(201).json(resObj);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      return res.status(400).json({ message: e.message, error_code: 400 });
+    }
+    return res.status(500).json({ message: 'Server error', error_code: 500 });
+  }
+};
+
+export const updateAssignment = async (
+  req: AuthorizedRequest,
+  res: Response,
+) => {
+  if (!req.body.assignment) {
+    return res
+      .status(400)
+      .json({ message: 'Assignment details required', error_code: 400 });
   }
 
-  const resObj: AssignmentView = {
-    ...result,
-    enrolledClasses: classes,
-    enrolledStudents: students,
-  };
+  if (!req.user?.id) {
+    return res
+      .status(401)
+      .json({ message: 'User not authenticated', error_code: 401 });
+  }
 
-  return res.status(201).json(resObj);
+  const {
+    id,
+    title,
+    description,
+    type,
+    instructions,
+    min_word_count: minWordCount,
+    max_word_count: maxWordCount,
+    due_date: dueDate,
+    rubrics,
+    enrolled_class_ids: enrolledClassIds,
+    enrolled_student_ids: enrolledStudentIds,
+  } = req.body.assignment;
+
+  if (!id) {
+    return res
+      .status(400)
+      .json({ message: 'Missing assignment ID', error_code: 400 });
+  }
+
+  try {
+    const [classes, students] = await assignmentValidation(req.body.assignment);
+
+    const result = await updateExistingAssignment(
+      id,
+      title,
+      description,
+      dueDate,
+      type,
+      instructions,
+      minWordCount,
+      maxWordCount,
+      JSON.stringify(rubrics),
+      enrolledClassIds,
+      enrolledStudentIds,
+    );
+
+    if (!result) {
+      return res.status(500).json({ message: 'Server error', error_code: 500 });
+    }
+
+    const resObj: AssignmentView = {
+      ...result,
+      enrolled_classes: classes,
+      enrolled_students: students,
+    };
+
+    return res.status(200).json(resObj);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      return res.status(400).json({ message: e.message, error_code: 400 });
+    }
+    return res.status(500).json({ message: 'Server error', error_code: 500 });
+  }
 };

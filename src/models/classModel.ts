@@ -28,7 +28,7 @@ export const fetchClassOptionsByTeacherId = async (
   id: number,
 ): Promise<ClassOption[]> => {
   const [classRows] = await pool.query(
-    `SELECT classes.id as id, classes.name as name, COUNT(*) as numStudents
+    `SELECT classes.id as id, classes.name as name, COUNT(*) as num_students
       FROM classes
       JOIN class_students ON classes.id = class_students.class_id
       WHERE class_id IN (

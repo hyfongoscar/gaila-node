@@ -4,22 +4,22 @@ export interface User {
   password: string;
   email: string;
   role: 'admin' | 'teacher' | 'student';
-  lastAccess?: number;
-  lastLogin?: number;
-  timeCreated?: number;
-  timeModified?: number;
-  firstName?: string;
-  lastName?: string;
+  last_access?: number;
+  last_login?: number;
+  time_created?: number;
+  time_modified?: number;
+  first_name?: string;
+  last_name?: string;
   deleted?: boolean;
   lang?: string;
 }
 
 export interface ClassUser extends User {
-  classId: number;
-  className: string;
+  student_class_id: number;
+  student_class_name: string;
 }
 
-export type ClassUserOption = Pick<
-  ClassUser,
-  'id' | 'firstName' | 'lastName' | 'username' | 'className'
+export type UserOption = Pick<
+  User,
+  'id' | 'first_name' | 'last_name' | 'username'
 >;

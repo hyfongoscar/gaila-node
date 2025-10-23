@@ -5,55 +5,74 @@ export interface Assignment {
   id: string;
   title: string;
   description?: string;
-  dueDate?: string;
+  due_date?: string;
   type?: string;
   instructions?: string;
-  minWordCount?: number;
-  maxWordCount?: number;
+  min_word_count?: number;
+  max_word_count?: number;
   rubrics?: string;
-  createdBy: number;
+  created_by: number;
 }
 
 export interface AssignmentView extends Assignment {
-  enrolledClasses: Class[];
-  enrolledStudents: User[];
+  enrolled_classes: Class[];
+  enrolled_students: User[];
 }
 
 export interface AssignmentTeacher {
   id: number;
-  assignmentId: number;
-  teacherId: number;
+  assignment_id: number;
+  teacher_id: number;
 }
 
 export interface AssignmentTarget {
   id: number;
-  assignmentId: number;
-  classId?: number;
-  studentId?: number;
+  assignment_id: number;
+  class_id?: number;
+  student_id?: number;
 }
+
+export type AssignmentEnrollment =
+  | AssignmentEnrolledClass
+  | AssignmentEnrolledStudent;
+export type AssignmentEnrolledClass = {
+  id: number;
+  assignment_id: number;
+  class_id: number;
+  class_name: string;
+  num_students: number;
+};
+export type AssignmentEnrolledStudent = {
+  id: number;
+  assignment_id: number;
+  student_id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+};
 
 export interface AssignmentSubmission {
   id: number;
-  assignmentId: number;
-  studentId: number;
+  assignment_id: number;
+  student_id: number;
   content?: string;
-  submittedAt?: number;
+  submitted_at?: number;
 }
 
 export interface AssignmentSubmissionDraft {
   id: number;
-  assignmentId: number;
-  studentId: number;
+  assignment_id: number;
+  student_id: number;
   content?: string;
-  savedAt?: number;
+  saved_at?: number;
 }
 
 export interface AssignmentGrade {
   id: number;
-  submissionId: number;
+  submission_id: number;
   score: number;
-  scoreBreakdown?: any;
+  score_breakdown?: any;
   feedback?: string;
-  gradedAt?: number;
-  gradedBy: number;
+  graded_at?: number;
+  graded_by: number;
 }

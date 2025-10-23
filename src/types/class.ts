@@ -2,14 +2,14 @@ export interface Class {
   id: number;
   name: string;
   description?: string;
-  startAt?: number;
-  endAt?: number;
+  start_at?: number;
+  end_at?: number;
 }
 
 export interface ClassOption {
   id: number;
   name: string;
-  numStudents: number;
+  num_students: number;
 }
 
 export interface ClassTeacher {
@@ -20,8 +20,8 @@ export interface ClassTeacher {
 
 export interface ClassStudent {
   id: number;
-  classId: number;
-  studentId: number;
+  class_id: number;
+  student_id: number;
 }
 
 // export interface Course {

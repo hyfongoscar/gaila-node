@@ -1,5 +1,5 @@
 import pool from 'config/db';
-import { ClassUser, ClassUserOption, User } from 'types/user';
+import { ClassUser, User, UserOption } from 'types/user';
 
 export const fetchUserByUsername = async (
   username: string,
@@ -26,7 +26,7 @@ export const fetchStudentsInTeachingClasses = async (
   teacherId: number,
 ): Promise<ClassUser[]> => {
   const [rows] = await pool.query(
-    `SELECT users.*, classes.id as classId, classes.name as className FROM classes
+    `SELECT users.*, classes.id as class_id, classes.name as class_name FROM classes
       JOIN class_students ON classes.id = class_students.class_id
       JOIN users ON class_students.student_id = users.id
       WHERE class_id IN (
@@ -40,14 +40,14 @@ export const fetchStudentsInTeachingClasses = async (
 
 export const fetchStudentOptionsInClass = async (
   classId: number,
-): Promise<ClassUserOption[]> => {
+): Promise<UserOption[]> => {
   const [rows] = await pool.query(
-    `SELECT users.id as id, users.first_name as firstName, users.last_name as lastName, users.username as username, classes.id as classId, classes.name as className FROM classes
-      JOIN class_students ON classes.id = class_students.class_id
+    `SELECT users.id as id, users.first_name as first_name, users.last_name as last_name, users.username as username 
+      FROM class_students
       JOIN users ON class_students.student_id = users.id
       WHERE class_id = ?`,
     [classId],
   );
 
-  return rows as ClassUserOption[];
+  return rows as UserOption[];
 };
