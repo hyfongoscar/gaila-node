@@ -1,5 +1,5 @@
 {
-  "name": "flora_node",
+  "name": "gaila_node",
   "version": "1.0.0",
   "description": "",
   "type": "module",
@@ -8,11 +8,11 @@
     "build": "tsc && pnpm run postbuild:tsc-alias",
     "postbuild:tsc-alias": "tsc-alias",
     "start": "vite-node dist/index.js",
-    "eslint": "eslint --ext js,ts,tsx",
+    "eslint": "eslint --ext js,ts",
     "lint": "pnpm eslint src",
     "lint:fix": "pnpm eslint --fix src && prettier --write src",
     "test:ts": "tsc --project tsconfig.json",
-    "test:all": "pnpm lint && pnpm lint:css && pnpm test:ts",
+    "test:all": "pnpm lint && pnpm test:ts",
     "prepare": "husky"
   },
   "packageManager": "pnpm@10.18.3+sha512.bbd16e6d7286fd7e01f6b3c0b3c932cda2965c06a908328f74663f10a9aea51f1129eea615134bf992831b009eabe167ecb7008b597f40ff9bc75946aadfb08d",
@@ -51,14 +51,11 @@
     "vite-tsconfig-paths": "^4.2.0"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
+    "*.{ts,js}": [
       "pnpm run eslint --fix"
     ],
     "*.{md,json}": [
       "prettier --write"
-    ],
-    "*.{scss,css,sass}": [
-      "pnpm lint:css --fix"
     ]
   },
   "config": {
