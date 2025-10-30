@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { fetchLatestGradesBySubmissionIds } from 'models/assignmentGradingModel';
 import {
   fetchAssignementEnrollmentsById,
   fetchAssignmentById,
@@ -9,6 +10,8 @@ import {
   saveNewAssignment,
   updateExistingAssignment,
 } from 'models/assignmentModel';
+import { fetchAssignmentStagesByAssignmentId } from 'models/assignmentStageModel';
+import { fetchLatestSubmissionsByAssignmentIdStudentId } from 'models/assignmentSubmissionModel';
 import { fetchClassesByIds } from 'models/classModel';
 import { fetchUsersByIds } from 'models/userModel';
 
@@ -317,4 +320,64 @@ export const updateAssignment = async (
       .status(500)
       .json({ error_message: 'Server error', error_code: 500 });
   }
+};
+
+export const getAssignmentSubmissionDetails = async (
+  req: AuthorizedRequest,
+  res: Response,
+) => {
+  const assignmentId = Number(req.params.id);
+  if (isNaN(assignmentId)) {
+    return res
+      .status(400)
+      .json({ error_message: 'Missing assignment ID', error_code: 400 });
+  }
+
+  if (!req.user?.id) {
+    return res
+      .status(401)
+      .json({ error_message: 'User not authenticated', error_code: 401 });
+  }
+
+  const assignmentDetails = await fetchAssignmentById(assignmentId);
+  if (!assignmentDetails) {
+    return res.status(404).json({ error_message: 'Assignment not found' });
+  }
+
+  // TODO: chatbot detail
+
+  const stages = await fetchAssignmentStagesByAssignmentId(assignmentId);
+  const submissions = await fetchLatestSubmissionsByAssignmentIdStudentId(
+    assignmentId,
+    req.user.id,
+  );
+  const grades = await fetchLatestGradesBySubmissionIds(
+    submissions.map(s => s.id),
+  );
+
+  const currentStage = stages.findIndex(
+    s =>
+      !!submissions.find(
+        submission => submission.stage_id === s.id && !submission.is_final,
+      ),
+  );
+
+  const resStages = stages.map(stage => {
+    const submission = submissions.find(
+      submission => submission.stage_id === stage.id,
+    );
+    return {
+      ...stage,
+      submission,
+      grade: submission
+        ? grades.find(grade => grade.submission_id === submission.id)
+        : null,
+    };
+  });
+
+  return res.json({
+    assignment: assignmentDetails,
+    stages: resStages,
+    current_stage: currentStage,
+  });
 };

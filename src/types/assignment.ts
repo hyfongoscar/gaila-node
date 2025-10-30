@@ -19,6 +19,34 @@ export interface AssignmentView extends Assignment {
   enrolled_students: User[];
 }
 
+export interface AssignmentStage {
+  id: number;
+  assignment_id: number;
+  stage_type: string;
+  order_index: number;
+  enabled: boolean;
+}
+
+export interface ChatbotTemplates {
+  id: number;
+  name: string;
+  description: string;
+  default_role_prompt: string;
+  default_config: string;
+  default_model: string;
+  created_at: string;
+}
+
+export interface AssignmentChatbot {
+  id: number;
+  assignment_id: number;
+  assignment_stage_id: number;
+  chatbot_template_id: number;
+  custom_role_prompt: string;
+  custom_config: string;
+  enabled: boolean;
+}
+
 export interface AssignmentTeacher {
   id: number;
   assignment_id: number;
@@ -35,6 +63,7 @@ export interface AssignmentTarget {
 export type AssignmentEnrollment =
   | AssignmentEnrolledClass
   | AssignmentEnrolledStudent;
+
 export type AssignmentEnrolledClass = {
   id: number;
   assignment_id: number;
@@ -42,6 +71,7 @@ export type AssignmentEnrolledClass = {
   class_name: string;
   num_students: number;
 };
+
 export type AssignmentEnrolledStudent = {
   id: number;
   assignment_id: number;
@@ -54,17 +84,11 @@ export type AssignmentEnrolledStudent = {
 export interface AssignmentSubmission {
   id: number;
   assignment_id: number;
+  stage_id: number;
   student_id: number;
   content?: string;
   submitted_at?: number;
-}
-
-export interface AssignmentSubmissionDraft {
-  id: number;
-  assignment_id: number;
-  student_id: number;
-  content?: string;
-  saved_at?: number;
+  is_final?: boolean;
 }
 
 export interface AssignmentGrade {

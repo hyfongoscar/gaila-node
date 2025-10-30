@@ -15,6 +15,7 @@ export const fetchAssignmentsByTeacherId = async (
   );
   return classRows as Class[];
 };
+
 export const fetchAssignmentsCountByTeacherId = async (
   id: number,
 ): Promise<number> => {
