@@ -8,9 +8,9 @@ export interface Assignment {
   due_date?: string;
   type?: string;
   instructions?: string;
-  min_word_count?: number;
-  max_word_count?: number;
+  requirements?: number;
   rubrics?: string;
+  tips?: string;
   created_by: number;
 }
 

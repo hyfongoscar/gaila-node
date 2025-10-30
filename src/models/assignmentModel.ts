@@ -10,7 +10,7 @@ export const fetchAssignmentsByTeacherId = async (
   page: number,
 ): Promise<Class[]> => {
   const [classRows] = await pool.query(
-    'SELECT * FROM assignment JOIN assignment_teachers ON assignment.id = assignment_teachers.class_id WHERE assignment_teachers.teacher_id = ? LIMIT ? OFFSET ?',
+    'SELECT assignments.* FROM assignments JOIN assignment_teachers ON assignments.id = assignment_teachers.assignment_id WHERE assignment_teachers.teacher_id = ? LIMIT ? OFFSET ?',
     [id, limit, (page - 1) * limit],
   );
   return classRows as Class[];
@@ -19,7 +19,7 @@ export const fetchAssignmentsCountByTeacherId = async (
   id: number,
 ): Promise<number> => {
   const [rows] = await pool.query(
-    'SELECT COUNT(*) FROM assignment JOIN assignment_teachers ON assignment.id = assignment_teachers.class_id WHERE assignment_teachers.teacher_id = ?',
+    'SELECT COUNT(*) FROM assignments JOIN assignment_teachers ON assignments.id = assignment_teachers.assignment_id WHERE assignment_teachers.teacher_id = ?',
     [id],
   );
   const result = rows as { 'COUNT(*)': number }[];
@@ -32,7 +32,7 @@ export const fetchAssignmentsByStudentId = async (
   page: number,
 ): Promise<Class[]> => {
   const [classStudentRows] = await pool.query(
-    'SELECT * FROM assignments JOIN class_students ON assignments.id = class_students.student_id WHERE student_id = ? LIMIT ? OFFSET ?',
+    'SELECT assignments.* FROM assignments JOIN class_students ON assignments.id = class_students.student_id WHERE student_id = ? LIMIT ? OFFSET ?',
     [id, limit, (page - 1) * limit],
   );
   return classStudentRows as Class[];
@@ -86,24 +86,24 @@ export const saveNewAssignment = async (
   dueDate: string,
   type: string,
   instructions: string,
-  minWordCount: number | null,
-  maxWordCount: number | null,
+  requirements: string,
   rubrics: string,
+  tips: string,
   createdBy: number,
   enrolledClassIds: number[],
   enrolledStudentIds: number[],
 ): Promise<Assignment | null> => {
   const [insertRows] = await pool.query(
-    'INSERT INTO assignments (title, description, due_date, type, instructions, min_word_count, max_word_count, rubrics, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO assignments (title, description, due_date, type, instructions, requirements, rubrics, tips, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       title,
       description || null,
       dueDate || null,
       type || null,
       instructions || null,
-      minWordCount || null,
-      maxWordCount || null,
+      requirements,
       rubrics || null,
+      tips || null,
       createdBy,
     ],
   );
@@ -150,9 +150,9 @@ export const updateExistingAssignment = async (
   dueDate: string,
   type: string,
   instructions: string,
-  minWordCount: number | null,
-  maxWordCount: number | null,
+  requirements: string,
   rubrics: string,
+  tips: string,
   newEnrolledClassIds: number[],
   newEnrolledStudentIds: number[],
 ): Promise<Assignment | null> => {
@@ -178,17 +178,17 @@ export const updateExistingAssignment = async (
     updateParams.push(instructions);
     placeholders.push('instructions = ?');
   }
-  if (minWordCount) {
-    updateParams.push(minWordCount);
-    placeholders.push('min_word_count = ?');
-  }
-  if (maxWordCount) {
-    updateParams.push(maxWordCount);
-    placeholders.push('max_word_count = ?');
+  if (requirements) {
+    updateParams.push(requirements);
+    placeholders.push('requirements = ?');
   }
   if (rubrics) {
     updateParams.push(rubrics);
     placeholders.push('rubrics = ?');
+  }
+  if (tips) {
+    updateParams.push(tips);
+    placeholders.push('tips = ?');
   }
 
   await pool.query(
