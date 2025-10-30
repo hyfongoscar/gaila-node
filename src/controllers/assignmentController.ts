@@ -35,9 +35,10 @@ export const getUserAssignments = async (
   const page = parsedPage !== undefined ? parsedPage : 1;
 
   if (isNaN(limit) || isNaN(page) || limit <= 0 || page <= 0) {
-    return res
-      .status(400)
-      .json({ message: 'Invalid pagination parameters', error_code: 400 });
+    return res.status(400).json({
+      error_message: 'Invalid pagination parameters',
+      error_code: 400,
+    });
   }
 
   const resObj = { page, limit, value: [] as Class[] };
@@ -48,7 +49,7 @@ export const getUserAssignments = async (
     resObj.value = await fetchAssignmentsByTeacherId(req.user.id, limit, page);
   } else {
     return res.status(403).json({
-      message: 'Access forbidden: insufficient rights',
+      error_message: 'Access forbidden: insufficient rights',
       error_code: 403,
     });
   }
@@ -73,19 +74,20 @@ export const getAssignmentDetails = async (
   if (isNaN(assignmentId)) {
     return res
       .status(400)
-      .json({ message: 'Missing assignment ID', error_code: 400 });
+      .json({ error_message: 'Missing assignment ID', error_code: 400 });
   }
 
   try {
     const assignmentDetails = await fetchAssignmentById(assignmentId);
     if (!assignmentDetails) {
-      return res.status(404).json({ message: 'Assignment not found' });
+      return res.status(404).json({ error_message: 'Assignment not found' });
     }
     const enrollments = await fetchAssignementEnrollmentsById(assignmentId);
     if (!enrollments) {
-      return res
-        .status(500)
-        .json({ message: 'Assignment enrollments not found', error_code: 500 });
+      return res.status(500).json({
+        error_message: 'Assignment enrollments not found',
+        error_code: 500,
+      });
     }
     const classes: ClassOption[] = [];
     const students: UserOption[] = [];
@@ -112,7 +114,7 @@ export const getAssignmentDetails = async (
     });
   } catch (err) {
     return res.status(500).json({
-      message: 'Server error: ' + JSON.stringify(err),
+      error_message: 'Server error: ' + JSON.stringify(err),
       error_code: 500,
     });
   }
@@ -175,13 +177,13 @@ export const createAssignment = async (
   if (!req.body.assignment) {
     return res
       .status(400)
-      .json({ message: 'Assignment details required', error_code: 400 });
+      .json({ error_message: 'Assignment details required', error_code: 400 });
   }
 
   if (!req.user?.id) {
     return res
       .status(401)
-      .json({ message: 'User not authenticated', error_code: 401 });
+      .json({ error_message: 'User not authenticated', error_code: 401 });
   }
 
   const {
@@ -215,7 +217,9 @@ export const createAssignment = async (
     );
 
     if (!result) {
-      return res.status(500).json({ message: 'Server error', error_code: 500 });
+      return res
+        .status(500)
+        .json({ error_message: 'Server error', error_code: 500 });
     }
 
     const resObj: AssignmentView = {
@@ -227,9 +231,13 @@ export const createAssignment = async (
     return res.status(201).json(resObj);
   } catch (e: unknown) {
     if (e instanceof Error) {
-      return res.status(400).json({ message: e.message, error_code: 400 });
+      return res
+        .status(400)
+        .json({ error_message: e.message, error_code: 400 });
     }
-    return res.status(500).json({ message: 'Server error', error_code: 500 });
+    return res
+      .status(500)
+      .json({ error_message: 'Server error', error_code: 500 });
   }
 };
 
@@ -240,13 +248,13 @@ export const updateAssignment = async (
   if (!req.body.assignment) {
     return res
       .status(400)
-      .json({ message: 'Assignment details required', error_code: 400 });
+      .json({ error_message: 'Assignment details required', error_code: 400 });
   }
 
   if (!req.user?.id) {
     return res
       .status(401)
-      .json({ message: 'User not authenticated', error_code: 401 });
+      .json({ error_message: 'User not authenticated', error_code: 401 });
   }
 
   const {
@@ -266,7 +274,7 @@ export const updateAssignment = async (
   if (!id) {
     return res
       .status(400)
-      .json({ message: 'Missing assignment ID', error_code: 400 });
+      .json({ error_message: 'Missing assignment ID', error_code: 400 });
   }
 
   try {
@@ -287,7 +295,9 @@ export const updateAssignment = async (
     );
 
     if (!result) {
-      return res.status(500).json({ message: 'Server error', error_code: 500 });
+      return res
+        .status(500)
+        .json({ error_message: 'Server error', error_code: 500 });
     }
 
     const resObj: AssignmentView = {
@@ -299,8 +309,12 @@ export const updateAssignment = async (
     return res.status(200).json(resObj);
   } catch (e: unknown) {
     if (e instanceof Error) {
-      return res.status(400).json({ message: e.message, error_code: 400 });
+      return res
+        .status(400)
+        .json({ error_message: e.message, error_code: 400 });
     }
-    return res.status(500).json({ message: 'Server error', error_code: 500 });
+    return res
+      .status(500)
+      .json({ error_message: 'Server error', error_code: 500 });
   }
 };

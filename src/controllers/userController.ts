@@ -12,7 +12,7 @@ export const getClassOptions = async (
   if (!req.user?.id) {
     return res
       .status(401)
-      .json({ message: 'User not authenticated', error_code: 401 });
+      .json({ error_message: 'User not authenticated', error_code: 401 });
   }
 
   return res.json(await fetchClassOptionsByTeacherId(req.user.id));
@@ -25,19 +25,19 @@ export const getStudentOptions = async (
   if (!req.user?.id) {
     return res
       .status(401)
-      .json({ message: 'User not authenticated', error_code: 401 });
+      .json({ error_message: 'User not authenticated', error_code: 401 });
   }
   if (!req.query.classId) {
     return res
       .status(400)
-      .json({ message: 'Class ID is required', error_code: 400 });
+      .json({ error_message: 'Class ID is required', error_code: 400 });
   }
 
   const classId = parseQueryNumber(req.query.classId);
   if (!classId || isNaN(classId)) {
     return res
       .status(400)
-      .json({ message: 'Invalid class ID', error_code: 400 });
+      .json({ error_message: 'Invalid class ID', error_code: 400 });
   }
 
   return res.json(await fetchStudentOptionsInClass(classId));

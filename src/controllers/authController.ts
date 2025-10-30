@@ -27,12 +27,16 @@ export const loginUser = async (req: Request, res: Response) => {
   // 1. Check if user exists
   const user = await fetchUserByUsername(username);
   if (!user) {
-    return res.status(401).json({ error: 'Invalid username or password' });
+    return res
+      .status(401)
+      .json({ error_message: 'Invalid username or password' });
   }
 
   // 2. Compare passwords
   if (!bcrypt.compareSync(password, user.password)) {
-    return res.status(401).json({ error: 'Invalid username or password' });
+    return res
+      .status(401)
+      .json({ error_message: 'Invalid username or password' });
   }
 
   // 3. Generate access token and refresh token
@@ -47,9 +51,9 @@ export const loginUser = async (req: Request, res: Response) => {
     !refreshTokenExpiresIn ||
     isNaN(refreshTokenExpiresIn)
   ) {
-    return res
-      .status(500)
-      .json({ error: 'Token secrets and expirationn are not configured' });
+    return res.status(500).json({
+      error_message: 'Token secrets and expirationn are not configured',
+    });
   }
 
   const token = generateAccessToken(user.id, user.username);
@@ -77,7 +81,7 @@ export const refreshToken = async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
-    return res.status(400).json({ error: 'Refresh token is required' });
+    return res.status(400).json({ error_message: 'Refresh token is required' });
   }
 
   // Search for token in DB
@@ -87,17 +91,17 @@ export const refreshToken = async (req: Request, res: Response) => {
     .digest('hex');
   const dbRefreshToken = await fetchRefreshTokenByTokenHash(tokenHash);
   if (!dbRefreshToken) {
-    return res.status(401).json({ error: 'Invalid refresh token' });
+    return res.status(401).json({ error_message: 'Invalid refresh token' });
   }
 
   if (dbRefreshToken.expires_at < Date.now()) {
-    return res.status(401).json({ error: 'Refresh token has expired' });
+    return res.status(401).json({ error_message: 'Refresh token has expired' });
   }
 
   // Fetch user to generate new access token
   const user = await fetchUserById(dbRefreshToken.user_id);
   if (!user) {
-    return res.status(401).json({ error: 'Invalid refresh token' });
+    return res.status(401).json({ error_message: 'Invalid refresh token' });
   }
 
   const newAccessToken = generateAccessToken(user.id, user.username);

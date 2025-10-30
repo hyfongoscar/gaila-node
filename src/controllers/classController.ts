@@ -22,9 +22,10 @@ export const getUserClasses = async (
   const page = parsedPage !== undefined ? parsedPage : 1;
 
   if (isNaN(limit) || isNaN(page) || limit <= 0 || page <= 0) {
-    return res
-      .status(400)
-      .json({ message: 'Invalid pagination parameters', error_code: 400 });
+    return res.status(400).json({
+      error_message: 'Invalid pagination parameters',
+      error_code: 400,
+    });
   }
 
   const resObj = { page, limit, value: [] as Class[] };
@@ -35,7 +36,7 @@ export const getUserClasses = async (
     resObj.value = await fetchClassListingByTeacherId(req.user.id, limit, page);
   } else {
     return res.status(403).json({
-      message: 'Access forbidden: insufficient rights',
+      error_message: 'Access forbidden: insufficient rights',
       error_code: 403,
     });
   }
@@ -60,7 +61,7 @@ export const getClassDetails = async (
   if (isNaN(classId)) {
     return res
       .status(400)
-      .json({ message: 'Invalid class ID', error_code: 400 });
+      .json({ error_message: 'Invalid class ID', error_code: 400 });
   }
 
   try {
@@ -68,12 +69,12 @@ export const getClassDetails = async (
     if (!classDetails) {
       return res
         .status(404)
-        .json({ message: 'Class not found', error_code: 404 });
+        .json({ error_message: 'Class not found', error_code: 404 });
     }
     return res.json(classDetails);
   } catch (err) {
     return res.status(500).json({
-      message: 'Server error: ' + JSON.stringify(err),
+      error_message: 'Server error: ' + JSON.stringify(err),
       error_code: 500,
     });
   }
