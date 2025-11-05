@@ -27,6 +27,12 @@ export interface AssignmentStage {
   enabled: boolean;
 }
 
+export interface AssignmentStageCreatePayload {
+  stage_type: string;
+  enabled: boolean;
+  tools: { key: string; enabled: boolean }[];
+}
+
 export interface ChatbotTemplates {
   id: number;
   name: string;
@@ -37,14 +43,24 @@ export interface ChatbotTemplates {
   created_at: string;
 }
 
-export interface AssignmentChatbot {
+export interface AssignmentTools {
   id: number;
   assignment_id: number;
   assignment_stage_id: number;
-  chatbot_template_id: number;
-  custom_role_prompt: string;
-  custom_config: string;
+  tool_key: string;
+  chatbot_template_id?: number;
+  custom_role_prompt?: string;
+  custom_config?: string;
   enabled: boolean;
+}
+
+export interface AssignmentStageWithTools {
+  id: number;
+  assignment_id: number;
+  stage_type: string;
+  order_index: number;
+  enabled: boolean;
+  tools: { key: string; enabled: boolean }[];
 }
 
 export interface AssignmentTeacher {

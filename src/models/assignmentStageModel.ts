@@ -1,17 +1,46 @@
 import pool from 'config/db';
-import { AssignmentStage } from 'types/assignment';
+import { AssignmentStage, AssignmentStageWithTools } from 'types/assignment';
 
-export const fetchAssignmentStagesByAssignmentId = async (
+export const fetchAssignmentStagesWithToolsByAssignmentId = async (
   assignmentId: number,
-): Promise<AssignmentStage[]> => {
-  const [rows] = await pool.query(
+): Promise<AssignmentStageWithTools[]> => {
+  const [stageRows] = await pool.query(
     `
-    SELECT id, assignment_id, stage_type
+    SELECT id, assignment_id, stage_type, enabled
     FROM assignment_stages
-    WHERE assignment_id = ? AND enabled = 1
+    WHERE assignment_id = ?
     ORDER BY order_index
     `,
     [assignmentId],
   );
-  return rows as AssignmentStage[];
+  const stages = stageRows as AssignmentStage[];
+
+  if (!stages.length) {
+    return [];
+  }
+
+  const stageIdPlaceholders = stages.map(() => '?').join(',');
+  const [toolRows] = await pool.query(
+    `
+    SELECT assignment_stage_id, tool_key, enabled
+    FROM assignment_tools
+    WHERE assignment_id = ? AND assignment_stage_id IN (${stageIdPlaceholders})
+    `,
+    [assignmentId, ...stages.map(stage => stage.id)],
+  );
+  const tools = toolRows as {
+    assignment_stage_id: number;
+    tool_key: string;
+    enabled: boolean;
+  }[];
+
+  return stages.map(stage => ({
+    ...stage,
+    tools: tools
+      .filter(tool => tool.assignment_stage_id === stage.id)
+      .map(tool => ({
+        key: tool.tool_key,
+        enabled: tool.enabled,
+      })),
+  })) as AssignmentStageWithTools[];
 };

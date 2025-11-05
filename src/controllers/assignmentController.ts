@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { isArray, isBoolean, isObject, isString } from 'lodash-es';
 import { fetchLatestGradesBySubmissionIds } from 'models/assignmentGradingModel';
 import {
   fetchAssignementEnrollmentsById,
@@ -10,7 +11,7 @@ import {
   saveNewAssignment,
   updateExistingAssignment,
 } from 'models/assignmentModel';
-import { fetchAssignmentStagesByAssignmentId } from 'models/assignmentStageModel';
+import { fetchAssignmentStagesWithToolsByAssignmentId } from 'models/assignmentStageModel';
 import { fetchLatestSubmissionsByAssignmentIdStudentId } from 'models/assignmentSubmissionModel';
 import { fetchClassesByIds } from 'models/classModel';
 import { fetchUsersByIds } from 'models/userModel';
@@ -85,6 +86,7 @@ export const getAssignmentDetails = async (
     if (!assignmentDetails) {
       return res.status(404).json({ error_message: 'Assignment not found' });
     }
+
     const enrollments = await fetchAssignementEnrollmentsById(assignmentId);
     if (!enrollments) {
       return res.status(500).json({
@@ -110,10 +112,15 @@ export const getAssignmentDetails = async (
         });
       }
     });
+
+    const stages =
+      await fetchAssignmentStagesWithToolsByAssignmentId(assignmentId);
+
     return res.json({
       ...assignmentDetails,
       enrolled_classes: classes,
       enrolled_students: students,
+      stages,
     });
   } catch (err) {
     return res.status(500).json({
@@ -132,6 +139,7 @@ const assignmentValidation = async (
     due_date: dueDate,
     enrolled_class_ids: enrolledClassIds,
     enrolled_student_ids: enrolledStudentIds,
+    stages,
   } = assignment;
 
   if (
@@ -152,6 +160,24 @@ const assignmentValidation = async (
     throw new Error(
       `Missing required field${missingFields.length > 1 ? 's' : ''}: ${missingFields.join(', ')}`,
     );
+  }
+
+  if (!isArray(stages) || stages.length === 0) {
+    throw new Error('Missing stages');
+  }
+  if (
+    !stages.every(
+      (stage: unknown) =>
+        isObject(stage) &&
+        'stage_type' in stage &&
+        'enabled' in stage &&
+        'tools' in stage &&
+        isString(stage.stage_type) &&
+        isBoolean(stage.enabled) &&
+        isArray(stage.tools),
+    )
+  ) {
+    throw new Error('Invalid stage data');
   }
 
   const classes = enrolledClassIds.length
@@ -198,6 +224,7 @@ export const createAssignment = async (
     due_date: dueDate,
     rubrics,
     tips,
+    stages,
     enrolled_class_ids: enrolledClassIds,
     enrolled_student_ids: enrolledStudentIds,
   } = req.body.assignment;
@@ -211,9 +238,10 @@ export const createAssignment = async (
       dueDate,
       type,
       instructions,
-      requirements,
+      JSON.stringify(requirements),
       JSON.stringify(rubrics),
       JSON.stringify(tips),
+      stages,
       req.user.id,
       enrolledClassIds,
       enrolledStudentIds,
@@ -270,6 +298,7 @@ export const updateAssignment = async (
     due_date: dueDate,
     rubrics,
     tips,
+    stages,
     enrolled_class_ids: enrolledClassIds,
     enrolled_student_ids: enrolledStudentIds,
   } = req.body.assignment;
@@ -290,9 +319,10 @@ export const updateAssignment = async (
       dueDate,
       type,
       instructions,
-      requirements,
+      JSON.stringify(requirements),
       JSON.stringify(rubrics),
       JSON.stringify(tips),
+      stages,
       enrolledClassIds,
       enrolledStudentIds,
     );
@@ -344,9 +374,6 @@ export const getAssignmentSubmissionDetails = async (
     return res.status(404).json({ error_message: 'Assignment not found' });
   }
 
-  // TODO: chatbot detail
-
-  const stages = await fetchAssignmentStagesByAssignmentId(assignmentId);
   const submissions = await fetchLatestSubmissionsByAssignmentIdStudentId(
     assignmentId,
     req.user.id,
@@ -355,6 +382,9 @@ export const getAssignmentSubmissionDetails = async (
     submissions.map(s => s.id),
   );
 
+  // TODO: chatbot detail
+  const stages =
+    await fetchAssignmentStagesWithToolsByAssignmentId(assignmentId);
   const currentStage = stages.findIndex(
     s =>
       !!submissions.find(

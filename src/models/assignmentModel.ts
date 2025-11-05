@@ -1,7 +1,11 @@
 import { ResultSetHeader } from 'mysql2';
 
 import pool from 'config/db';
-import { Assignment, AssignmentEnrollment } from 'types/assignment';
+import {
+  Assignment,
+  AssignmentEnrollment,
+  AssignmentStageCreatePayload,
+} from 'types/assignment';
 import { Class, ClassTeacher } from 'types/class';
 
 export const fetchAssignmentsByTeacherId = async (
@@ -33,8 +37,16 @@ export const fetchAssignmentsByStudentId = async (
   page: number,
 ): Promise<Class[]> => {
   const [classStudentRows] = await pool.query(
-    'SELECT assignments.* FROM assignments JOIN class_students ON assignments.id = class_students.student_id WHERE student_id = ? LIMIT ? OFFSET ?',
-    [id, limit, (page - 1) * limit],
+    `
+      SELECT assignments.* FROM assignments
+        JOIN assignment_targets
+        ON assignments.id = assignment_targets.assignment_id
+      WHERE assignment_targets.student_id = ? OR assignment_targets.class_id in (
+        SELECT class_id FROM class_students WHERE student_id = ?
+      )
+      LIMIT ? OFFSET ?
+    `,
+    [id, id, limit, (page - 1) * limit],
   );
   return classStudentRows as Class[];
 };
@@ -90,6 +102,7 @@ export const saveNewAssignment = async (
   requirements: string,
   rubrics: string,
   tips: string,
+  stages: AssignmentStageCreatePayload[],
   createdBy: number,
   enrolledClassIds: number[],
   enrolledStudentIds: number[],
@@ -141,6 +154,23 @@ export const saveNewAssignment = async (
       [assignmentId, enrolledStudentId],
     );
   }
+
+  for (const [i, stage] of stages.entries()) {
+    const [insertStageRows] = await pool.query(
+      'INSERT INTO assignment_stages (assignment_id, stage_type, enabled) VALUES (?, ?, ?, ?)',
+      [assignmentId, stage.stage_type, i, stage.enabled],
+    );
+    const insertStageResult = insertStageRows as ResultSetHeader;
+    const stageId = insertStageResult.insertId;
+
+    for (const tool of stage.tools) {
+      await pool.query(
+        'INSERT INTO assignment_tools (assignment_id, assignment_stage_id, tool_key, enabled) VALUES (?, ?, ?, ?)',
+        [assignmentId, stageId, tool.key, tool.enabled],
+      );
+    }
+  }
+
   return result.length > 0 ? result[0] : null;
 };
 
@@ -154,6 +184,7 @@ export const updateExistingAssignment = async (
   requirements: string,
   rubrics: string,
   tips: string,
+  stages: AssignmentStageCreatePayload[],
   newEnrolledClassIds: number[],
   newEnrolledStudentIds: number[],
 ): Promise<Assignment | null> => {
@@ -281,5 +312,31 @@ export const updateExistingAssignment = async (
       [assignmentId, enrolledStudentId],
     );
   }
+
+  for (const [i, stage] of stages.entries()) {
+    const [updateRows] = await pool.query(
+      'UPDATE assignment_stages SET enabled = ?, order_index = ? WHERE assignment_id = ? AND stage_type = ?',
+      [stage.enabled, i, assignmentId, stage.stage_type],
+    );
+
+    const updateResult = updateRows as ResultSetHeader;
+    let stageId = updateResult.insertId;
+    if (updateResult.affectedRows === 0) {
+      const [insertRows] = await pool.query(
+        'INSERT INTO assignment_stages (assignment_id, stage_type, order_index, enabled) VALUES (?, ?, ?, ?)',
+        [assignmentId, stage.stage_type, i, stage.enabled],
+      );
+      const insertResult = insertRows as ResultSetHeader;
+      stageId = insertResult.insertId;
+    }
+
+    for (const tool of stage.tools) {
+      await pool.query(
+        'UPDATE assignment_stage_tools SET enabled = ? WHERE assignment_id = ? AND assignment_stage_id = ? AND key = ?',
+        [tool.enabled, assignmentId, stageId, tool.key],
+      );
+    }
+  }
+
   return result.length > 0 ? result[0] : null;
 };
