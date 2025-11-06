@@ -157,7 +157,7 @@ export const saveNewAssignment = async (
 
   for (const [i, stage] of stages.entries()) {
     const [insertStageRows] = await pool.query(
-      'INSERT INTO assignment_stages (assignment_id, stage_type, enabled) VALUES (?, ?, ?, ?)',
+      'INSERT INTO assignment_stages (assignment_id, stage_type, order_index, enabled) VALUES (?, ?, ?, ?)',
       [assignmentId, stage.stage_type, i, stage.enabled],
     );
     const insertStageResult = insertStageRows as ResultSetHeader;

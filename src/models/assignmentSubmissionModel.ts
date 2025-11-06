@@ -1,3 +1,5 @@
+import { ResultSetHeader } from 'mysql2';
+
 import pool from 'config/db';
 import { AssignmentSubmission } from 'types/assignment';
 
@@ -26,4 +28,28 @@ export const fetchLatestSubmissionsByAssignmentIdStudentId = async (
     [assignmentId, studentId, assignmentId],
   );
   return rows as AssignmentSubmission[];
+};
+
+export const saveNewAssignmentSubmission = async (
+  assignmentId: number,
+  stageId: number,
+  studentId: number,
+  content: string,
+  isFinal: boolean,
+): Promise<AssignmentSubmission> => {
+  const [insertRows] = await pool.query(
+    'INSERT INTO assignment_submissions (assignment_id, stage_id, student_id, content, submitted_at, is_final) VALUES (?, ?, ?, ?, ?, ?)',
+    [assignmentId, stageId, studentId, content, Date.now(), isFinal],
+  );
+  const insertResult = insertRows as ResultSetHeader;
+  const submissionId = insertResult.insertId;
+  return {
+    id: submissionId,
+    assignment_id: assignmentId,
+    stage_id: stageId,
+    student_id: studentId,
+    content,
+    submitted_at: Date.now(),
+    is_final: isFinal,
+  };
 };

@@ -12,7 +12,10 @@ import {
   updateExistingAssignment,
 } from 'models/assignmentModel';
 import { fetchAssignmentStagesWithToolsByAssignmentId } from 'models/assignmentStageModel';
-import { fetchLatestSubmissionsByAssignmentIdStudentId } from 'models/assignmentSubmissionModel';
+import {
+  fetchLatestSubmissionsByAssignmentIdStudentId,
+  saveNewAssignmentSubmission,
+} from 'models/assignmentSubmissionModel';
 import { fetchClassesByIds } from 'models/classModel';
 import { fetchUsersByIds } from 'models/userModel';
 
@@ -385,12 +388,21 @@ export const getAssignmentSubmissionDetails = async (
   // TODO: chatbot detail
   const stages =
     await fetchAssignmentStagesWithToolsByAssignmentId(assignmentId);
-  const currentStage = stages.findIndex(
-    s =>
-      !!submissions.find(
-        submission => submission.stage_id === s.id && !submission.is_final,
-      ),
+
+  const isFinished = stages.every(
+    stage =>
+      !stage.enabled ||
+      !!submissions.find(s => s.stage_id === stage.id && s.is_final),
   );
+  const currentStage = isFinished
+    ? stages.findIndex(s => s.enabled && s.stage_type === 'writing')
+    : stages.findIndex(
+        s =>
+          s.enabled &&
+          !submissions.find(
+            submission => submission.stage_id === s.id && submission.is_final,
+          ),
+      );
 
   const resStages = stages.map(stage => {
     const submission = submissions.find(
@@ -398,7 +410,7 @@ export const getAssignmentSubmissionDetails = async (
     );
     return {
       ...stage,
-      submission,
+      submission: submission || null,
       grade: submission
         ? grades.find(grade => grade.submission_id === submission.id)
         : null,
@@ -409,5 +421,57 @@ export const getAssignmentSubmissionDetails = async (
     assignment: assignmentDetails,
     stages: resStages,
     current_stage: currentStage,
+    is_finished: isFinished,
   });
+};
+
+export const submitAssignment = async (
+  req: AuthorizedRequest,
+  res: Response,
+) => {
+  if (!req.user?.id) {
+    return res
+      .status(401)
+      .json({ error_message: 'User not authenticated', error_code: 401 });
+  }
+
+  const { assignment_id, stage_id, content, is_final } = req.body.submission;
+
+  if (isNaN(assignment_id)) {
+    return res
+      .status(400)
+      .json({ error_message: 'Missing assignment ID', error_code: 400 });
+  }
+
+  if (isNaN(stage_id)) {
+    return res
+      .status(400)
+      .json({ error_message: 'Missing stage ID', error_code: 400 });
+  }
+
+  if (!content) {
+    return res
+      .status(400)
+      .json({ error_message: 'Missing content', error_code: 400 });
+  }
+
+  try {
+    const submission = await saveNewAssignmentSubmission(
+      assignment_id,
+      stage_id,
+      req.user.id,
+      content,
+      is_final || false,
+    );
+    return res.status(200).json(submission);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      return res
+        .status(400)
+        .json({ error_message: e.message, error_code: 400 });
+    }
+    return res
+      .status(500)
+      .json({ error_message: 'Server error', error_code: 500 });
+  }
 };
