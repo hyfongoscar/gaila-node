@@ -11,7 +11,7 @@ export function authenticateToken(
   next: NextFunction,
 ) {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader ? authHeader.split(' ')[1] : null;
   const tokenSecret = process.env.TOKEN_SECRET;
   const tokenExpiresIn = Number(process.env.TOKEN_EXPIRES_IN);
 

@@ -5,6 +5,6 @@ import { authorizeRole } from 'middleware/auth';
 const router = Router();
 
 router.get('/listing', authorizeRole(), getUserClasses);
-router.get('/view/:id', authorizeRole(), getClassDetails);
+router.get('/view', authorizeRole(), getClassDetails);
 
 export default router;

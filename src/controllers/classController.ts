@@ -57,7 +57,7 @@ export const getClassDetails = async (
   req: AuthenticatedRequest,
   res: Response,
 ) => {
-  const classId = Number(req.params.id);
+  const classId = Number(req.query.id);
   if (isNaN(classId)) {
     return res
       .status(400)

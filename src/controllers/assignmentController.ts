@@ -77,7 +77,7 @@ export const getAssignmentDetails = async (
   req: AuthorizedRequest,
   res: Response,
 ) => {
-  const assignmentId = Number(req.params.id);
+  const assignmentId = Number(req.query.id);
   if (isNaN(assignmentId)) {
     return res
       .status(400)
@@ -359,7 +359,7 @@ export const getAssignmentSubmissionDetails = async (
   req: AuthorizedRequest,
   res: Response,
 ) => {
-  const assignmentId = Number(req.params.id);
+  const assignmentId = Number(req.query.id);
   if (isNaN(assignmentId)) {
     return res
       .status(400)
