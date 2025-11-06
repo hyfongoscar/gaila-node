@@ -17,6 +17,7 @@ import {
   saveNewAssignmentSubmission,
 } from 'models/assignmentSubmissionModel';
 import { fetchClassesByIds } from 'models/classModel';
+import { saveNewTraceData } from 'models/traceDataModel';
 import { fetchUsersByIds } from 'models/userModel';
 
 import { AssignmentView } from 'types/assignment';
@@ -435,7 +436,8 @@ export const submitAssignment = async (
       .json({ error_message: 'User not authenticated', error_code: 401 });
   }
 
-  const { assignment_id, stage_id, content, is_final } = req.body.submission;
+  const { assignment_id, stage_id, content, is_final, is_manual } =
+    req.body.submission;
 
   if (isNaN(assignment_id)) {
     return res
@@ -463,6 +465,15 @@ export const submitAssignment = async (
       content,
       is_final || false,
     );
+
+    saveNewTraceData(
+      req.user.id,
+      assignment_id,
+      stage_id,
+      is_manual ? 'SAVE' : 'AUTO_SAVE',
+      content,
+    );
+
     return res.status(200).json(submission);
   } catch (e: unknown) {
     if (e instanceof Error) {
