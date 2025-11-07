@@ -30,6 +30,33 @@ export const fetchLatestSubmissionsByAssignmentIdStudentId = async (
   return rows as AssignmentSubmission[];
 };
 
+export const fetchLatestSubmissionByStageIdStudentId = async (
+  stageId: number,
+  studentId: number,
+): Promise<AssignmentSubmission | null> => {
+  const [rows] = await pool.query(
+    `
+    SELECT s.*
+    FROM assignment_submissions s
+    INNER JOIN (
+      SELECT stage_id, max(submitted_at) as max_submitted_at
+      FROM assignment_submissions
+      WHERE stage_id = ? AND student_id = ?
+    ) latest_submissions
+      ON latest_submissions.stage_id = s.stage_id
+      AND latest_submissions.max_submitted_at = s.submitted_at
+    INNER JOIN (
+      SELECT id as stage_id
+      FROM assignment_stages
+      WHERE enabled = 1
+    ) stages on stages.stage_id = s.stage_id
+    `,
+    [stageId, studentId],
+  );
+  const result = rows as AssignmentSubmission[];
+  return result.length > 0 ? result[0] : null;
+};
+
 export const saveNewAssignmentSubmission = async (
   assignmentId: number,
   stageId: number,

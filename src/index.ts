@@ -5,6 +5,7 @@ import { authenticateToken } from 'middleware/auth';
 import assignmentRoutes from 'routes/assignment';
 import authRoutes from 'routes/auth';
 import classRoutes from 'routes/class';
+import gptRoutes from 'routes/gpt';
 import homeRoutes from 'routes/home';
 import traceDataRoutes from 'routes/trace-data';
 import userRoutes from 'routes/user';
@@ -26,6 +27,7 @@ app.use('/api/class', authenticateToken, classRoutes);
 app.use('/api/assignment', authenticateToken, assignmentRoutes);
 app.use('/api/user', authenticateToken, userRoutes);
 app.use('/api/trace-data', authenticateToken, traceDataRoutes);
+app.use('/api/gpt', authenticateToken, gptRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

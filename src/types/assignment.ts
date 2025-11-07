@@ -43,7 +43,7 @@ export interface ChatbotTemplates {
   created_at: string;
 }
 
-export interface AssignmentTools {
+export interface AssignmentTool {
   id: number;
   assignment_id: number;
   assignment_stage_id: number;
