@@ -48,3 +48,17 @@ export const saveNewGptLog = async (
     gpt_response_time,
   };
 };
+
+export const fetchGptLogsByUserIdToolId = async (
+  userId: number,
+  assignment_tool_id: number,
+  limit: number,
+  page: number,
+): Promise<GptLog[]> => {
+  const offset = (page - 1) * limit;
+  const [rows] = await pool.query(
+    `SELECT * FROM gpt_logs WHERE user_id = ? AND assignment_tool_id = ? ORDER BY user_ask_time DESC LIMIT ? OFFSET ?`,
+    [userId, assignment_tool_id, limit, offset],
+  );
+  return rows as GptLog[];
+};

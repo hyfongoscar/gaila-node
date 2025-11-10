@@ -30,3 +30,27 @@ export const fetchAssignmentToolByAssignmentToolId = async (
   const result = rows as AssignmentTool[];
   return result.length > 0 ? result[0] : null;
 };
+
+export const saveNewAssignmentTool = async (
+  assignmentId: number,
+  stageId: number,
+  key: string,
+  enabled: boolean,
+): Promise<void> => {
+  const [templateRows] = await pool.query(
+    `SELECT * FROM chatbot_templates WHERE name = ?`,
+    [key],
+  );
+  const templateResults = templateRows as { id: number }[];
+  if (templateResults.length > 0) {
+    await pool.query(
+      `INSERT INTO assignment_tools (assignment_id, assignment_stage_id, chatbot_template_id, tool_key, enabled) VALUES (?, ?, ?, ?, ?)`,
+      [assignmentId, stageId, templateResults[0].id, key, enabled],
+    );
+  } else {
+    await pool.query(
+      `INSERT INTO assignment_tools (assignment_id, assignment_stage_id, tool_key, enabled) VALUES (?, ?, ?, ?)`,
+      [assignmentId, stageId, key, enabled],
+    );
+  }
+};

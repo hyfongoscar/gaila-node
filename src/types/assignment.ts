@@ -60,7 +60,7 @@ export interface AssignmentStageWithTools {
   stage_type: string;
   order_index: number;
   enabled: boolean;
-  tools: { key: string; enabled: boolean }[];
+  tools: { id: number; key: string; enabled: boolean }[];
 }
 
 export interface AssignmentTeacher {

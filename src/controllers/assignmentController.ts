@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { isArray, isBoolean, isObject, isString } from 'lodash-es';
+import { isArray, isObject, isString } from 'lodash-es';
 import { fetchLatestGradesBySubmissionIds } from 'models/assignmentGradingModel';
 import {
   fetchAssignementEnrollmentsById,
@@ -177,7 +177,6 @@ const assignmentValidation = async (
         'enabled' in stage &&
         'tools' in stage &&
         isString(stage.stage_type) &&
-        isBoolean(stage.enabled) &&
         isArray(stage.tools),
     )
   ) {

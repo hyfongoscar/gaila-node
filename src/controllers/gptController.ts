@@ -1,14 +1,20 @@
 import { Response } from 'express';
+import { isNil } from 'lodash-es';
 import { fetchLatestSubmissionByStageIdStudentId } from 'models/assignmentSubmissionModel';
 import {
   fetchAssignmentToolByAssignmentToolId,
   fetchRolePromptByAssignmentToolId,
 } from 'models/assignmentToolModel';
-import { fetchLatestGptLogByUserId, saveNewGptLog } from 'models/gptLogModel';
+import {
+  fetchGptLogsByUserIdToolId,
+  fetchLatestGptLogByUserId,
+  saveNewGptLog,
+} from 'models/gptLogModel';
 import { saveNewTraceData } from 'models/traceDataModel';
 
 import { GptLog, GptResponse } from 'types/gpt';
 import { AuthorizedRequest } from 'types/request';
+import parseQueryNumber from 'utils/parseQueryNumber';
 
 const fetchChatReponse = async (
   question: string,
@@ -81,8 +87,8 @@ export const askGptModel = async (req: AuthorizedRequest, res: Response) => {
   const { assignment_id: assignmentId, assignment_stage_id: stageId } =
     assignmentTool;
 
-  let essay = req.body.essay;
-  if (!essay) {
+  let essay = req.body.essay || '';
+  if (!essay && req.user?.role === 'student') {
     const latestEssaySubmission = await fetchLatestSubmissionByStageIdStudentId(
       assignmentId,
       req.user.id,
@@ -103,7 +109,7 @@ export const askGptModel = async (req: AuthorizedRequest, res: Response) => {
     const chatRes = await fetchChatReponse(
       question,
       rolePrompt,
-      essay,
+      essay || '',
       pastMessages,
     );
 
@@ -143,4 +149,44 @@ export const askGptModel = async (req: AuthorizedRequest, res: Response) => {
       error_code: 500,
     });
   }
+};
+
+export const getGptHistory = async (req: AuthorizedRequest, res: Response) => {
+  if (!req.user?.id) {
+    return res
+      .status(401)
+      .json({ error_message: 'User not authenticated', error_code: 401 });
+  }
+
+  const parsedToolId = parseQueryNumber(req.query.assignment_tool_id);
+  const parsedLimit = parseQueryNumber(req.query.limit);
+  const parsedPage = parseQueryNumber(req.query.page);
+
+  const limit = parsedLimit !== undefined ? parsedLimit : 10;
+  const page = parsedPage !== undefined ? parsedPage : 1;
+
+  if (
+    isNil(parsedToolId) ||
+    (isNaN(parsedToolId) && !req.query.assignment_tool_key)
+  ) {
+    return res
+      .status(400)
+      .json({ error_message: 'Invalid assignment tool id', error_code: 400 });
+  }
+
+  if (isNaN(limit) || isNaN(page) || limit <= 0 || page <= 0) {
+    return res.status(400).json({
+      error_message: 'Invalid pagination parameters',
+      error_code: 400,
+    });
+  }
+
+  const gptLogs = await fetchGptLogsByUserIdToolId(
+    req.user.id,
+    parsedToolId,
+    limit,
+    page,
+  );
+
+  return res.json({ page, limit, value: gptLogs });
 };

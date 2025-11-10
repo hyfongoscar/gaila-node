@@ -1,3 +1,5 @@
+import { isNumber } from 'lodash-es';
+import { saveNewAssignmentTool } from 'models/assignmentToolModel';
 import { ResultSetHeader } from 'mysql2';
 
 import pool from 'config/db';
@@ -164,9 +166,11 @@ export const saveNewAssignment = async (
     const stageId = insertStageResult.insertId;
 
     for (const tool of stage.tools) {
-      await pool.query(
-        'INSERT INTO assignment_tools (assignment_id, assignment_stage_id, tool_key, enabled) VALUES (?, ?, ?, ?)',
-        [assignmentId, stageId, tool.key, tool.enabled],
+      await saveNewAssignmentTool(
+        assignmentId,
+        stageId,
+        tool.key,
+        tool.enabled,
       );
     }
   }
@@ -314,14 +318,14 @@ export const updateExistingAssignment = async (
   }
 
   for (const [i, stage] of stages.entries()) {
-    const [updateRows] = await pool.query(
-      'UPDATE assignment_stages SET enabled = ?, order_index = ? WHERE assignment_id = ? AND stage_type = ?',
-      [stage.enabled, i, assignmentId, stage.stage_type],
-    );
-
-    const updateResult = updateRows as ResultSetHeader;
-    let stageId = updateResult.insertId;
-    if (updateResult.affectedRows === 0) {
+    let stageId = 0;
+    if ('id' in stage && isNumber(stage.id)) {
+      await pool.query(
+        'UPDATE assignment_stages SET enabled = ?, order_index = ? WHERE id = ?',
+        [stage.enabled, i, stage.id],
+      );
+      stageId = stage.id;
+    } else {
       const [insertRows] = await pool.query(
         'INSERT INTO assignment_stages (assignment_id, stage_type, order_index, enabled) VALUES (?, ?, ?, ?)',
         [assignmentId, stage.stage_type, i, stage.enabled],
@@ -331,10 +335,20 @@ export const updateExistingAssignment = async (
     }
 
     for (const tool of stage.tools) {
-      await pool.query(
-        'UPDATE assignment_stage_tools SET enabled = ? WHERE assignment_id = ? AND assignment_stage_id = ? AND key = ?',
+      const [toolUpdateRows] = await pool.query(
+        'UPDATE assignment_tools SET enabled = ? WHERE assignment_id = ? AND assignment_stage_id = ? AND tool_key = ?',
         [tool.enabled, assignmentId, stageId, tool.key],
       );
+
+      const toolUpdateResult = toolUpdateRows as ResultSetHeader;
+      if (toolUpdateResult.affectedRows === 0) {
+        await saveNewAssignmentTool(
+          assignmentId,
+          stageId,
+          tool.key,
+          tool.enabled,
+        );
+      }
     }
   }
 
