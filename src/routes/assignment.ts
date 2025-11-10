@@ -1,8 +1,8 @@
 import {
   createAssignment,
   getAssignmentDetails,
+  getAssignmentListing,
   getAssignmentSubmissionDetails as getAssignmentProgressDetails,
-  getUserAssignments,
   submitAssignment,
   updateAssignment,
 } from 'controllers/assignmentController';
@@ -11,7 +11,7 @@ import { authorizeRole } from 'middleware/auth';
 
 const router = Router();
 
-router.get('/listing', authorizeRole(), getUserAssignments);
+router.get('/listing', authorizeRole(), getAssignmentListing);
 router.get('/view', authorizeRole(), getAssignmentDetails);
 router.post('/create', authorizeRole(['teacher', 'admin']), createAssignment);
 router.post('/update', authorizeRole(['teacher', 'admin']), updateAssignment);

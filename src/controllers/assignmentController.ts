@@ -32,7 +32,7 @@ const parseQueryNumber = (v: any): number | undefined => {
   return undefined;
 };
 
-export const getUserAssignments = async (
+export const getAssignmentListing = async (
   req: AuthorizedRequest,
   res: Response,
 ) => {
@@ -42,6 +42,10 @@ export const getUserAssignments = async (
   const limit = parsedLimit !== undefined ? parsedLimit : 10;
   const page = parsedPage !== undefined ? parsedPage : 1;
 
+  const filter = req.query.filter ? JSON.parse(req.query.filter as string) : {};
+  const sort = req.query.sort;
+  const sortOrder = req.query.sort_order;
+
   if (isNaN(limit) || isNaN(page) || limit <= 0 || page <= 0) {
     return res.status(400).json({
       error_message: 'Invalid pagination parameters',
@@ -49,12 +53,40 @@ export const getUserAssignments = async (
     });
   }
 
+  if (!!sort && !isString(sort)) {
+    return res.status(400).json({
+      error_message: 'Invalid sort value',
+      error_code: 400,
+    });
+  }
+
+  if (!!sortOrder && sortOrder !== 'asc' && sortOrder !== 'desc') {
+    return res.status(400).json({
+      error_message: 'Invalid sort order',
+      error_code: 400,
+    });
+  }
+
   const resObj = { page, limit, value: [] as Class[] };
 
   if (req.user?.role === 'student') {
-    resObj.value = await fetchAssignmentsByStudentId(req.user.id, limit, page);
+    resObj.value = await fetchAssignmentsByStudentId(
+      req.user.id,
+      limit,
+      page,
+      filter,
+      sort,
+      sortOrder as 'asc' | 'desc',
+    );
   } else if (req.user?.role === 'teacher' || req.user?.role === 'admin') {
-    resObj.value = await fetchAssignmentsByTeacherId(req.user.id, limit, page);
+    resObj.value = await fetchAssignmentsByTeacherId(
+      req.user.id,
+      limit,
+      page,
+      filter,
+      sort,
+      sortOrder as 'asc' | 'desc',
+    );
   } else {
     return res.status(403).json({
       error_message: 'Access forbidden: insufficient rights',
@@ -67,9 +99,9 @@ export const getUserAssignments = async (
 
   let count = 0;
   if (req.user?.role === 'student') {
-    count = await fetchAssignmentsCountByStudentId(req.user.id);
+    count = await fetchAssignmentsCountByStudentId(req.user.id, filter);
   } else if (req.user?.role === 'teacher' || req.user?.role === 'admin') {
-    count = await fetchAssignmentsCountByTeacherId(req.user.id);
+    count = await fetchAssignmentsCountByTeacherId(req.user.id, filter);
   }
   return res.json({ ...resObj, count });
 };

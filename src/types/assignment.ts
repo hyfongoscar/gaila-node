@@ -5,6 +5,7 @@ export interface Assignment {
   id: string;
   title: string;
   description?: string;
+  start_date?: string;
   due_date?: string;
   type?: string;
   instructions?: string;
@@ -45,8 +46,8 @@ export interface ChatbotTemplates {
 
 export interface AssignmentTool {
   id: number;
-  assignment_id: number;
-  assignment_stage_id: number;
+  assignment_id?: number;
+  assignment_stage_id?: number;
   tool_key: string;
   chatbot_template_id?: number;
   custom_role_prompt?: string;

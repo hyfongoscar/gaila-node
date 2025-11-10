@@ -10,23 +10,61 @@ import {
 } from 'types/assignment';
 import { Class, ClassTeacher } from 'types/class';
 
+type AssignmentFilterType = {
+  search?: string;
+  type?: string;
+  status?: string;
+};
+
 export const fetchAssignmentsByTeacherId = async (
-  id: number,
+  teacherId: number,
   limit: number,
   page: number,
+  filter: AssignmentFilterType,
+  sort: string | undefined,
+  sortOrder: 'asc' | 'desc' | undefined,
 ): Promise<Class[]> => {
   const [classRows] = await pool.query(
-    'SELECT assignments.* FROM assignments JOIN assignment_teachers ON assignments.id = assignment_teachers.assignment_id WHERE assignment_teachers.teacher_id = ? LIMIT ? OFFSET ?',
-    [id, limit, (page - 1) * limit],
+    `
+    SELECT * FROM (
+      SELECT
+        a.*,
+        CASE
+          WHEN a.start_date IS NOT NULL AND UNIX_TIMESTAMP(UTC_TIMESTAMP()) * 1000 < a.start_date THEN 'upcoming'
+          WHEN a.due_date IS NOT NULL AND UNIX_TIMESTAMP(UTC_TIMESTAMP()) * 1000 > a.due_date THEN 'past-due'
+          ELSE 'active'
+        END AS status
+      FROM assignments a
+      JOIN assignment_teachers at ON a.id = at.assignment_id
+      WHERE at.teacher_id = ? AND title like '%${filter.search}%' ${filter.type ? `AND type = '${filter.type}'` : ''}
+    ) t
+      ${filter.status ? `WHERE status = '${filter.status}'` : ''}
+      ${sort ? `ORDER BY ${sort} ${sortOrder || 'asc'}` : ''}
+      LIMIT ? OFFSET ?`,
+    [teacherId, limit, (page - 1) * limit],
   );
   return classRows as Class[];
 };
 
 export const fetchAssignmentsCountByTeacherId = async (
   id: number,
+  filter: AssignmentFilterType,
 ): Promise<number> => {
   const [rows] = await pool.query(
-    'SELECT COUNT(*) FROM assignments JOIN assignment_teachers ON assignments.id = assignment_teachers.assignment_id WHERE assignment_teachers.teacher_id = ?',
+    `SELECT COUNT(*) FROM (
+      SELECT
+        a.*,
+        CASE
+          WHEN a.start_date IS NOT NULL AND UNIX_TIMESTAMP(UTC_TIMESTAMP()) * 1000 < a.start_date THEN 'upcoming'
+          WHEN a.due_date IS NOT NULL AND UNIX_TIMESTAMP(UTC_TIMESTAMP()) * 1000 > a.due_date THEN 'past-due'
+          ELSE 'active'
+        END AS status
+      FROM assignments a
+      JOIN assignment_teachers at ON a.id = at.assignment_id
+      WHERE at.teacher_id = ? AND title like '%${filter.search}%' ${filter.type ? `AND type = '${filter.type}'` : ''}
+    ) t
+      ${filter.status ? `WHERE status = '${filter.status}'` : ''}
+    `,
     [id],
   );
   const result = rows as { 'COUNT(*)': number }[];
@@ -34,31 +72,73 @@ export const fetchAssignmentsCountByTeacherId = async (
 };
 
 export const fetchAssignmentsByStudentId = async (
-  id: number,
+  studentId: number,
   limit: number,
   page: number,
+  filter: AssignmentFilterType,
+  sort: string | undefined,
+  sortOrder: 'asc' | 'desc' | undefined,
 ): Promise<Class[]> => {
   const [classStudentRows] = await pool.query(
-    `
-      SELECT assignments.* FROM assignments
-        JOIN assignment_targets
-        ON assignments.id = assignment_targets.assignment_id
-      WHERE assignment_targets.student_id = ? OR assignment_targets.class_id in (
-        SELECT class_id FROM class_students WHERE student_id = ?
-      )
+    `SELECT * from (
+      SELECT
+        a.*,
+        CASE
+          WHEN a.start_date IS NOT NULL AND UNIX_TIMESTAMP(UTC_TIMESTAMP()) * 1000 < a.start_date THEN 'upcoming'
+          WHEN a.due_date IS NOT NULL AND UNIX_TIMESTAMP(UTC_TIMESTAMP()) * 1000 > a.due_date AND COUNT(DISTINCT fs.stage_id) != COUNT(DISTINCT ast.id) THEN 'past-due'
+          WHEN COUNT(DISTINCT fs.stage_id) = COUNT(DISTINCT ast.id) AND COUNT(DISTINCT g.id) = COUNT(DISTINCT fs.stage_id)
+            THEN 'graded'
+          WHEN COUNT(DISTINCT fs.stage_id) = COUNT(DISTINCT ast.id) THEN 'submitted'
+          ELSE 'in-progress'
+        END AS status
+      FROM assignments a
+        JOIN assignment_targets at ON a.id = at.assignment_id
+        JOIN assignment_stages ast ON a.id = ast.assignment_id
+        LEFT JOIN assignment_submissions fs ON ast.id = fs.stage_id AND fs.student_id = ? AND fs.is_final = 1
+        LEFT JOIN assignment_grades g ON fs.id = g.submission_id
+      WHERE 
+        (at.student_id = ? OR at.class_id in (SELECT class_id FROM class_students WHERE student_id = ?)) 
+        AND title like '%${filter.search}%' ${filter.type ? `AND type = '${filter.type}'` : ''}
+      GROUP BY a.id
+    ) t
+      ${filter.status ? `WHERE status = '${filter.status}'` : ''}
+      ${sort ? `ORDER BY ${sort} ${sortOrder || 'asc'}` : ''}
       LIMIT ? OFFSET ?
     `,
-    [id, id, limit, (page - 1) * limit],
+    [studentId, studentId, studentId, limit, (page - 1) * limit],
   );
   return classStudentRows as Class[];
 };
 
 export const fetchAssignmentsCountByStudentId = async (
-  id: number,
+  studentId: number,
+  filter: AssignmentFilterType,
 ): Promise<number> => {
   const [rows] = await pool.query(
-    'SELECT COUNT(*) FROM assignments JOIN class_students ON assignments.id = class_students.student_id WHERE student_id = ?',
-    [id],
+    `SELECT COUNT(*) from (
+      SELECT
+        a.*,
+        CASE
+          WHEN a.start_date IS NOT NULL AND UNIX_TIMESTAMP(UTC_TIMESTAMP()) * 1000 < a.start_date THEN 'upcoming'
+          WHEN a.due_date IS NOT NULL AND UNIX_TIMESTAMP(UTC_TIMESTAMP()) * 1000 > a.due_date AND COUNT(DISTINCT fs.stage_id) != COUNT(DISTINCT ast.id) THEN 'past-due'
+          WHEN COUNT(DISTINCT fs.stage_id) = COUNT(DISTINCT ast.id) AND COUNT(DISTINCT g.id) = COUNT(DISTINCT fs.stage_id)
+            THEN 'graded'
+          WHEN COUNT(DISTINCT fs.stage_id) = COUNT(DISTINCT ast.id) THEN 'submitted'
+          ELSE 'in-progress'
+        END AS status
+      FROM assignments a
+        JOIN assignment_targets at ON a.id = at.assignment_id
+        JOIN assignment_stages ast ON a.id = ast.assignment_id
+        LEFT JOIN assignment_submissions fs ON ast.id = fs.stage_id AND fs.student_id = ? AND fs.is_final = 1
+        LEFT JOIN assignment_grades g ON fs.id = g.submission_id
+      WHERE 
+        (at.student_id = ? OR at.class_id in (SELECT class_id FROM class_students WHERE student_id = ?)) 
+        AND title like '%${filter.search}%' ${filter.type ? `AND type = '${filter.type}'` : ''}
+      GROUP BY a.id
+    ) t
+      ${filter.status ? `WHERE status = '${filter.status}'` : ''}
+    `,
+    [studentId, studentId, studentId],
   );
   const result = rows as { 'COUNT(*)': number }[];
   return result.length > 0 ? result[0]['COUNT(*)'] : 0;

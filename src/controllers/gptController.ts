@@ -87,6 +87,13 @@ export const askGptModel = async (req: AuthorizedRequest, res: Response) => {
   const { assignment_id: assignmentId, assignment_stage_id: stageId } =
     assignmentTool;
 
+  if (!assignmentId || !stageId) {
+    return res.status(400).json({
+      error_message: 'Invalid assignment tool id',
+      error_code: 400,
+    });
+  }
+
   let essay = req.body.essay || '';
   if (!essay && req.user?.role === 'student') {
     const latestEssaySubmission = await fetchLatestSubmissionByStageIdStudentId(
