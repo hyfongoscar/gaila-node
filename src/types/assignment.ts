@@ -2,11 +2,11 @@ import { Class } from 'types/class';
 import { User } from 'types/user';
 
 export interface Assignment {
-  id: string;
+  id: number;
   title: string;
   description?: string;
-  start_date?: string;
-  due_date?: string;
+  start_date?: number;
+  due_date?: number;
   type?: string;
   instructions?: string;
   requirements?: number;
