@@ -2,12 +2,17 @@ import { Response } from 'express';
 import { isNumber, isString } from 'lodash-es';
 import {
   fetchLatestSubmissionsByAssignmentIdTeacherId,
+  fetchLatestSubmissionsByTeacherId,
   fetchLatestSubmissionsCountByAssignmentIdTeacherId,
+  fetchLatestSubmissionsCountByTeacherId,
   saveNewAssignmentSubmission,
 } from 'models/assignmentSubmissionModel';
 import { saveNewTraceData } from 'models/traceDataModel';
 
-import { AssignmentSubmissionListingItemResponse } from 'types/assignment';
+import {
+  AssignmentRecentSubmissionListingItemResponse,
+  AssignmentSubmissionListingItemResponse,
+} from 'types/assignment';
 import { AuthorizedRequest } from 'types/request';
 import parseQueryNumber from 'utils/parseQueryNumber';
 
@@ -152,3 +157,81 @@ export const getAssignmentSubmissionListing = async (
   );
   return res.json({ ...resObj, count });
 };
+
+export const getRecentSubmissions = async (
+  req: AuthorizedRequest,
+  res: Response,
+) => {
+  if (!req.user?.id) {
+    return res
+      .status(401)
+      .json({ error_message: 'User not authenticated', error_code: 401 });
+  }
+
+  const parsedLimit = parseQueryNumber(req.query.limit);
+  const parsedPage = parseQueryNumber(req.query.page);
+
+  const limit = parsedLimit !== undefined ? parsedLimit : 10;
+  const page = parsedPage !== undefined ? parsedPage : 1;
+
+  const filter = (req.query.filter || '') as string;
+
+  if (isNaN(limit) || isNaN(page) || limit <= 0 || page <= 0) {
+    return res.status(400).json({
+      error_message: 'Invalid pagination parameters',
+      error_code: 400,
+    });
+  }
+
+  if (!isString(filter)) {
+    return res
+      .status(400)
+      .json({ error_message: 'Invalid filter', error_code: 400 });
+  }
+
+  const resObj = {
+    page,
+    limit,
+    value: [] as AssignmentRecentSubmissionListingItemResponse[],
+  };
+
+  const listingItems = await fetchLatestSubmissionsByTeacherId(
+    req.user.id,
+    limit,
+    page,
+    filter,
+  );
+  resObj.value = listingItems.map(item => ({
+    id: item.id,
+    assignment_id: item.assignment_id,
+    title: item.title,
+    submitted_at: item.submitted_at,
+    is_final: item.is_final,
+    score: item.score,
+    stage: {
+      id: item.stage_id,
+      stage_type: item.stage_type,
+    },
+    student: {
+      id: item.student_id,
+      username: item.username,
+      first_name: item.first_name,
+      last_name: item.last_name,
+    },
+  }));
+
+  if (parseQueryNumber(req.query.skipCount)) {
+    return res.json(resObj);
+  }
+
+  const count = await fetchLatestSubmissionsCountByTeacherId(
+    req.user.id,
+    filter,
+  );
+  return res.json({ ...resObj, count });
+};
+
+export const getSubmissionDetails = async (
+  req: AuthorizedRequest,
+  res: Response,
+) => {};

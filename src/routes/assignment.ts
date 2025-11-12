@@ -2,7 +2,7 @@ import {
   createAssignment,
   getAssignmentDetails,
   getAssignmentListing,
-  getAssignmentSubmissionDetails as getAssignmentProgressDetails,
+  getAssignmentProgressDetails,
   updateAssignment,
 } from 'controllers/assignmentController';
 import { Router } from 'express';

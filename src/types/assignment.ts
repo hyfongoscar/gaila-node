@@ -140,6 +140,16 @@ export interface AssignmentSubmissionListingItemResponse {
   };
 }
 
+export interface AssignmentRecentSubmissionListingItem
+  extends AssignmentSubmissionListingItem {
+  title: string;
+}
+
+export interface AssignmentRecentSubmissionListingItemResponse
+  extends AssignmentSubmissionListingItemResponse {
+  title: string;
+}
+
 export interface AssignmentGrade {
   id: number;
   submission_id: number;

@@ -383,7 +383,7 @@ export const updateAssignment = async (
   }
 };
 
-export const getAssignmentSubmissionDetails = async (
+export const getAssignmentProgressDetails = async (
   req: AuthorizedRequest,
   res: Response,
 ) => {
