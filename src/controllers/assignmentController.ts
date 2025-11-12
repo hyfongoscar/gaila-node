@@ -12,12 +12,8 @@ import {
   updateExistingAssignment,
 } from 'models/assignmentModel';
 import { fetchAssignmentStagesWithToolsByAssignmentId } from 'models/assignmentStageModel';
-import {
-  fetchLatestSubmissionsByAssignmentIdStudentId,
-  saveNewAssignmentSubmission,
-} from 'models/assignmentSubmissionModel';
+import { fetchLatestSubmissionsByAssignmentIdStudentId } from 'models/assignmentSubmissionModel';
 import { fetchClassesByIds } from 'models/classModel';
-import { saveNewTraceData } from 'models/traceDataModel';
 import { fetchUsersByIds } from 'models/userModel';
 
 import { AssignmentView } from 'types/assignment';
@@ -455,65 +451,4 @@ export const getAssignmentSubmissionDetails = async (
     current_stage: currentStage,
     is_finished: isFinished,
   });
-};
-
-export const submitAssignment = async (
-  req: AuthorizedRequest,
-  res: Response,
-) => {
-  if (!req.user?.id) {
-    return res
-      .status(401)
-      .json({ error_message: 'User not authenticated', error_code: 401 });
-  }
-
-  const { assignment_id, stage_id, content, is_final, is_manual } =
-    req.body.submission;
-
-  if (isNaN(assignment_id)) {
-    return res
-      .status(400)
-      .json({ error_message: 'Missing assignment ID', error_code: 400 });
-  }
-
-  if (isNaN(stage_id)) {
-    return res
-      .status(400)
-      .json({ error_message: 'Missing stage ID', error_code: 400 });
-  }
-
-  if (!content) {
-    return res
-      .status(400)
-      .json({ error_message: 'Missing content', error_code: 400 });
-  }
-
-  try {
-    const submission = await saveNewAssignmentSubmission(
-      assignment_id,
-      stage_id,
-      req.user.id,
-      content,
-      is_final || false,
-    );
-
-    saveNewTraceData(
-      req.user.id,
-      assignment_id,
-      stage_id,
-      is_manual ? 'SAVE' : 'AUTO_SAVE',
-      content,
-    );
-
-    return res.status(200).json(submission);
-  } catch (e: unknown) {
-    if (e instanceof Error) {
-      return res
-        .status(400)
-        .json({ error_message: e.message, error_code: 400 });
-    }
-    return res
-      .status(500)
-      .json({ error_message: 'Server error', error_code: 500 });
-  }
 };

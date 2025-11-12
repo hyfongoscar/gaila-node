@@ -108,6 +108,38 @@ export interface AssignmentSubmission {
   is_final?: boolean;
 }
 
+export interface AssignmentSubmissionListingItem {
+  id: number;
+  assignment_id: number;
+  submitted_at: number | null;
+  is_final: boolean | null;
+  stage_id: number;
+  stage_type: string;
+  student_id: number;
+  username: string;
+  first_name: string | null;
+  last_name: string | null;
+  score: number | null;
+}
+
+export interface AssignmentSubmissionListingItemResponse {
+  id: number;
+  assignment_id: number | null;
+  submitted_at: number | null;
+  is_final: boolean | null;
+  score: number | null;
+  stage: {
+    id: number;
+    stage_type: string;
+  };
+  student: {
+    id: number;
+    username: string;
+    first_name: string | null;
+    last_name: string | null;
+  };
+}
+
 export interface AssignmentGrade {
   id: number;
   submission_id: number;

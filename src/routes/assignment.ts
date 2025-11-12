@@ -3,7 +3,6 @@ import {
   getAssignmentDetails,
   getAssignmentListing,
   getAssignmentSubmissionDetails as getAssignmentProgressDetails,
-  submitAssignment,
   updateAssignment,
 } from 'controllers/assignmentController';
 import { Router } from 'express';
@@ -16,6 +15,5 @@ router.get('/view', authorizeRole(), getAssignmentDetails);
 router.post('/create', authorizeRole(['teacher', 'admin']), createAssignment);
 router.post('/update', authorizeRole(['teacher', 'admin']), updateAssignment);
 router.get('/view-progress', authorizeRole(), getAssignmentProgressDetails);
-router.post('/submit', authorizeRole(['student']), submitAssignment);
 
 export default router;
